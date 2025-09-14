@@ -1,3 +1,4 @@
+import 'package:dot_music/features/player/audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -9,6 +10,7 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     final dbHelper = DatabaseHelper();
     await dbHelper.db;
+    await initAudioService();
     runApp(DotMusic());
 }
 

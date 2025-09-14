@@ -1,4 +1,6 @@
+import 'package:dot_music/features/player/audio.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:dot_music/features/music_library.dart'; // Импортируем файл с функцией
 
@@ -54,7 +56,8 @@ class _SongListWidgetState extends State<SongListWidget> {
                           IconButton(
                             icon: const Icon(Icons.play_arrow),
                             onPressed: () {
-                              // TODO: Implement play functionality
+                              audioHandler.playFromFile(song.data);
+                              context.go("/track", extra: song.data);
                             },
                           ),
                           PopupMenuButton<String>(
