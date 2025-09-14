@@ -20,8 +20,10 @@ final router = GoRouter(
         GoRoute(
           path: "/track",
           builder: (context, state) {
-            final path = state.extra as String;
-            final page = PlayTrackPage(path: path);
+            final extra = state.extra as Map<String, dynamic>;
+            final path = extra["songData"] as String; // Предполагается, что song.data — это строка
+            final index = extra["index"] as int; // Предполагается, что index — это int
+            final page = PlayTrackPage(path: path, index: index);
             return page;
           },
         )

@@ -56,8 +56,9 @@ class _SongListWidgetState extends State<SongListWidget> {
                           IconButton(
                             icon: const Icon(Icons.play_arrow),
                             onPressed: () {
-                              audioHandler.playFromFile(song.data);
-                              context.go("/track", extra: song.data);
+                              // audioHandler.playFromFile(song.data);
+                              context.push("/track", extra: {"songData": song.data, "index": index});
+                              //context.push("/track", extra: song.data);
                             },
                           ),
                           PopupMenuButton<String>(

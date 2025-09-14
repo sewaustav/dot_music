@@ -10,9 +10,6 @@ Future<List<SongModel>> loadSongs() async {
     return [];
   }
   List<SongModel> songs = await _audioQuery.querySongs();
-  for (var song in songs) {
-    //logger.i("🎵 ${song.title} — ${song.artist}");
-  }
   logger.d("Loaded ${songs.length} songs");
   return songs;
 }
