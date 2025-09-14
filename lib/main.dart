@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:dot_music/core/router.dart';
+import 'package:dot_music/core/db/db.dart';
 
-void main() {
+
+void main() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    final dbHelper = DatabaseHelper();
+    await dbHelper.db;
     runApp(DotMusic());
 }
 

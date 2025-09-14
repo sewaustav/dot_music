@@ -11,7 +11,6 @@ class HomePage extends StatelessWidget {
 
 
   Future<void> _rr() async {
-    logger.i("message");
     await loadSongs();
   }
 
