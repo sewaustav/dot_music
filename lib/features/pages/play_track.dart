@@ -6,72 +6,119 @@ import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class PlayTrackPage extends StatefulWidget {
-	const PlayTrackPage({super.key, required this.path, required this.index});
+  const PlayTrackPage({super.key, required this.path, required this.index});
 
-	final String path;
+  final String path;
   final int index;
 
-	@override
-	State<PlayTrackPage> createState() => _PlayTrackPageState();
+  @override
+  State<PlayTrackPage> createState() => _PlayTrackPageState();
 }
 
 class _PlayTrackPageState extends State<PlayTrackPage> {
-	
   List<SongModel> _songs = [];
   String? _error;
+  int _currentIndex = 0;
 
-	@override 
-	void initState() {
-		super.initState();
-		audioHandler.playFromFile(widget.path);
+  @override 
+  void initState() {
+    super.initState();
+    _currentIndex = widget.index;
+    audioHandler.playFromFile(widget.path);
     _loadSongs();
     logger.i("${widget.index}");
-	}
+  }
 
   Future<void> _loadSongs() async {
-  try {
-    final songs = await loadSongs();
-    if (mounted) {
-      setState(() {
-        _songs = songs;
-      });
+    try {
+      final songs = await loadSongs();
+      if (mounted) {
+        setState(() {
+          _songs = songs;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = "Ошибка загрузки песен: $e";
+          logger.e(_error);
+        });
+      }
     }
-  } catch (e) {
-    if (mounted) {
+  }
+
+  void _playNextSong() {
+    if (_songs.isNotEmpty) {
+      String nextSong = getNextSong(_songs, _currentIndex);
+      int nextIndex = (_currentIndex + 1) % _songs.length;
+      audioHandler.stop();
+      audioHandler.playFromFile(nextSong);
       setState(() {
-        _error = "Ошибка загрузки песен: $e";
-        logger.e(_error);
+        _currentIndex = nextIndex;
       });
     }
   }
-}
 
-	@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(title: Text("Playing track")),
-    body: Column(
-      children: [
-        Text("Path: ${widget.path} Index: ${widget.index}"),
-        ElevatedButton(
-          onPressed: () => audioHandler.pause(),
-          child: const Text("Pause"),
-        ),
-        ElevatedButton(
-          onPressed: () => audioHandler.play(),
-          child: const Text("Resume"),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            audioHandler.stop();
-            String nextSong = getNextSong(_songs, widget.index);
-            audioHandler.playFromFile(nextSong);
-          },
-          child: const Text("Next")
-        )
-      ],
-    ),
-  );
-}
+  void _playPreviousSong() {
+    if (_songs.isNotEmpty) {
+      String prevSong = getPreviousSong(_songs, _currentIndex);
+      int prevIndex = (_currentIndex - 1) >= 0 ? _currentIndex - 1 : _songs.length - 1;
+      audioHandler.stop();
+      audioHandler.playFromFile(prevSong);
+      setState(() {
+        _currentIndex = prevIndex;
+      });
+    }
+  }
 
+  void _playRandomSong() {
+    if (_songs.isNotEmpty) {
+      String randomSong = getRandomSong(_songs, _currentIndex);
+      int randomIndex = (_songs.indexWhere((song) => song.data == randomSong));
+      audioHandler.stop();
+      audioHandler.playFromFile(randomSong);
+      setState(() {
+        _currentIndex = randomIndex;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    String currentSongTitle = _songs.isNotEmpty && _currentIndex < _songs.length 
+        ? _songs[_currentIndex].title 
+        : "No track loaded";
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(currentSongTitle),
+      ),
+      body: Column(
+        children: [
+          Text("Path: ${widget.path} Index: $_currentIndex"),
+          if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
+          ElevatedButton(
+            onPressed: () => audioHandler.pause(),
+            child: const Text("Pause"),
+          ),
+          ElevatedButton(
+            onPressed: () => audioHandler.play(),
+            child: const Text("Resume"),
+          ),
+          ElevatedButton(
+            onPressed: _playNextSong,
+            child: const Text("Next"),
+          ),
+          ElevatedButton(
+            onPressed: _playPreviousSong,
+            child: const Text("Prev"),
+          ),
+          ElevatedButton(
+            onPressed: _playRandomSong,
+            child: const Text("Random"),
+          ),
+        ],
+      ),
+    );
+  }
 }
