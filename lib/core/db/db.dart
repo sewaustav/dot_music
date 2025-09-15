@@ -39,6 +39,25 @@ class DatabaseHelper {
 
   }
 
+  Future<void> resetDatabase() async {
+    final database = await db;
+
+    final List<Map<String, dynamic>> tables = await database.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    );
+
+    await database.execute('PRAGMA foreign_keys = OFF');
+
+    for (final table in tables) {
+      final tableName = table['name'];
+      await database.execute('DROP TABLE IF EXISTS $tableName');
+    }
+
+    await database.execute('PRAGMA foreign_keys = ON');
+
+    logger.i("Database has been reset and tables recreated.");
+  }
+
   FutureOr<void> _onCreate(Database db, int version) async {
     for (final table in Schema.createTables) {
       await db.execute(table);
