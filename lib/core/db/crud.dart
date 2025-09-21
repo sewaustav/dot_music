@@ -41,15 +41,10 @@ class PlaylistService {
       trackId = await sm.addSongToDb(trackPath);
     }
 
-    await db.insert(
-      'playlist_tracks',
-      {
-        'playlist_id': playlistId,
-        'track_id': trackId,
-        'added_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+      await db.rawInsert(
+        'INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, added_at) VALUES (?, ?, ?)',
+        [playlistId, trackId, DateTime.now().toIso8601String()],
+      );
   }
 
   // delete from playlist
@@ -59,10 +54,44 @@ class PlaylistService {
     final playlistId = await _dbHelper.getPlaylistIdByName(playlistName);
     final trackId = await _dbHelper.getTrackIdByPath(trackPath);
 
-    await db.delete(
-      'playlist_tracks',
-      where: 'playlist_id = ? AND track_id = ?',
-      whereArgs: [playlistId, trackId],
+    await db.rawDelete(
+      'DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?',
+      [playlistId, trackId],
+    );
+  }
+
+}
+
+class PlaylistView {
+  
+  Future<Database> get _db async => await DatabaseHelper().db;
+
+  Future<List<Map<String, dynamic>>> getAllPlaylists() async {
+    final db = await _db;
+
+    return await db.rawQuery("SELECT * FROM playlists");
+  }
+
+  Future<List<Map<String, dynamic>>> getSongsFromPlaylist(String playlist) async {
+    final db = await _db;
+
+    return await db.rawQuery(
+      """SELECT * 
+      FROM playlist_tracks 
+      JOIN tracks ON playlist_tracks.track_id = tracks_id
+      WHERE playlist_tracks.playlist_id = ?""",
+      [playlist]
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getSongsIdFromPlaylist(String playlist) async {
+    final db = await _db;
+
+    return await db.rawQuery(
+      """
+        SELECT * FROM playlist_tracks WHERE playlist_id = ?
+      """,
+      [playlist]
     );
   }
 
