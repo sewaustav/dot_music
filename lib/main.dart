@@ -10,7 +10,6 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     final dbHelper = DatabaseHelper();
     await dbHelper.db;
-    // await dbHelper.resetDatabase(); // if need to reset db
     await initAudioService();
     runApp(DotMusic());
 }

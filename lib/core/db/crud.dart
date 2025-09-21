@@ -72,13 +72,13 @@ class PlaylistView {
     return await db.rawQuery("SELECT * FROM playlists");
   }
 
-  Future<List<Map<String, dynamic>>> getSongsFromPlaylist(String playlist) async {
+  Future<List<Map<String, dynamic>>> getSongsFromPlaylist(int playlist) async {
     final db = await _db;
 
     return await db.rawQuery(
       """SELECT * 
       FROM playlist_tracks 
-      JOIN tracks ON playlist_tracks.track_id = tracks_id
+      JOIN tracks ON playlist_tracks.track_id = track_id
       WHERE playlist_tracks.playlist_id = ?""",
       [playlist]
     );
@@ -114,6 +114,17 @@ class SongService {
     } else {
       throw Exception("Invalid path");
     }
+  }
+
+  Future<bool> getSongByPath(String path) async {
+    final db = await _db;
+
+    final result = await db.rawQuery(
+      'SELECT EXISTS(SELECT 1 FROM tracks WHERE path = ?) as track_exists',
+      [path]
+    );
+
+    return result.first['exists'] == 1;
   }
 
 }
