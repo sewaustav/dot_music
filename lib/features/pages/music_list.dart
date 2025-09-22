@@ -1,10 +1,9 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
-import 'package:dot_music/features/player/audio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:on_audio_query/on_audio_query.dart';
-import 'package:dot_music/features/music_library.dart'; // Импортируем файл с функцией
+import 'package:dot_music/features/music_library.dart';
 
 class SongListWidget extends StatefulWidget {
   const SongListWidget({super.key});
@@ -28,11 +27,68 @@ class _SongListWidgetState extends State<SongListWidget> {
       isLoading = true;
     });
 
-    List<SongModel> fetchedSongs = await loadSongs(); // Вызываем функцию
+    List<SongModel> fetchedSongs = await loadSongs();
     setState(() {
       songs = fetchedSongs;
       isLoading = false;
     });
+  }
+
+  // Функция для отображения диалога выбора плейлиста
+  Future<String?> _showPlaylistSelectionDialog(BuildContext context) async {
+    final pv = PlaylistView();
+    final List<Map<String, dynamic>> playlists = await pv.getAllPlaylists();
+
+    return showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Выберите плейлист'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: playlists.length,
+              itemBuilder: (context, index) {
+                final playlist = playlists[index];
+                return ListTile(
+                  title: Text(playlist['name'] ?? 'Unnamed'),
+                  onTap: () {
+                    Navigator.of(context).pop(playlist['name']);
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // Функция для добавления трека в выбранный плейлист
+  Future<void> _addToPlaylist(String playlistName, String songPath) async {
+    final ss = SongService();
+    final ps = PlaylistService();
+    
+    try {
+      bool songExists = await ss.getSongByPath(songPath);
+
+      if (songExists) {
+        logger.i('Трек уже существует в базе, добавляем в плейлист "$playlistName"');
+        await ps.addToPlaylist(playlistName, songPath);
+        logger.i('Трек успешно добавлен в плейлист "$playlistName"');
+      } else {
+        logger.w('Трек не найден в базе, добавляем сначала в базу');
+        await ss.addSongToDb(songPath);
+        logger.i('Трек добавлен в базу данных');
+        
+        await ps.addToPlaylist(playlistName, songPath);
+        logger.i('Трек успешно добавлен в плейлист "$playlistName"');
+      }
+    } catch (e, stackTrace) {
+      logger.e('Ошибка при добавлении в плейлист', error: e, stackTrace: stackTrace);
+      rethrow;
+    }
   }
 
   @override
@@ -58,52 +114,27 @@ class _SongListWidgetState extends State<SongListWidget> {
                           IconButton(
                             icon: const Icon(Icons.play_arrow),
                             onPressed: () {
-                              // audioHandler.playFromFile(song.data);
                               context.push("/track", extra: {"songData": song.data, "index": index});
-                              //context.push("/track", extra: song.data);
                             },
                           ),
                           PopupMenuButton<String>(
                             onSelected: (value) async {
-                              // TODO: Implement menu actions
                               if (value == 'add_to_playlist') {
-                                logger.i('Начало добавления в плейлист для трека: ${song.data}');
+                                // Показываем диалог выбора плейлиста
+                                final selectedPlaylist = await _showPlaylistSelectionDialog(context);
                                 
-                                final ss = SongService();
-                                final pv = PlaylistView();
-                                final ps = PlaylistService();
-                                
-                                try {
-                                  logger.d('Получение списка плейлистов...');
-                                  List<Map<String, dynamic>> _playlists = await pv.getAllPlaylists();
+                                if (selectedPlaylist != null) {
+                                  await _addToPlaylist(selectedPlaylist, song.data);
                                   
-                                  logger.i('Получено плейлистов: ${_playlists.length}');
-                                  for (var el in _playlists) {
-                                    logger.v('Плейлист: $el');
+                                  // Показываем подтверждение
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Трек добавлен в "$selectedPlaylist"'),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
                                   }
-                                  
-                                  logger.d('Проверка существования трека в базе: ${song.data}');
-                                  bool songExists = await ss.getSongByPath(song.data);
-                                  
-                                  if (songExists) {
-                                    logger.i('Трек уже существует в базе, добавляем в плейлист "RR"');
-                                    await ps.addToPlaylist("RR", song.data);
-                                    logger.i('Трек успешно добавлен в плейлист "RR"');
-                                  } else {
-                                    logger.w('Трек не найден в базе, добавляем сначала в базу');
-                                    await ss.addSongToDb(song.data);
-                                    logger.i('Трек добавлен в базу данных');
-                                    
-                                    logger.d('Добавляем трек в плейлист "RR"');
-                                    await ps.addToPlaylist("RR", song.data);
-                                    logger.i('Трек успешно добавлен в плейлист "RR"');
-                                  }
-                                  
-                                  logger.i('Операция добавления в плейлист завершена успешно');
-                                  
-                                } catch (e, stackTrace) {
-                                  logger.e('Ошибка при добавлении в плейлист', error: e, stackTrace: stackTrace);
-                                  rethrow;
                                 }
                               } else if (value == 'delete') {
                                 // Placeholder for delete
