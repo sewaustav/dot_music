@@ -23,15 +23,46 @@ class _SongListWidgetState extends State<SongListWidget> {
   }
 
   Future<void> _loadSongs() async {
-    setState(() {
-      isLoading = true;
-    });
+  final ss = SongService();
+  setState(() {
+    isLoading = true;
+  });
 
-    List<SongModel> fetchedSongs = await loadSongs();
-    setState(() {
-      songs = fetchedSongs;
-      isLoading = false;
-    });
+  List<SongModel> fetchedSongs = await loadSongs();
+  
+  // Сначала загружаем UI, чтобы пользователь не ждал
+  setState(() {
+    songs = fetchedSongs;
+    isLoading = false;
+  });
+
+  // Затем в фоне добавляем недостающие треки в БД
+  _addMissingSongsToDb(ss, fetchedSongs);
+}
+
+Future<void> _addMissingSongsToDb(SongService ss, List<SongModel> songs) async {
+  int addedCount = 0;
+  
+  for (var song in songs) {
+    try {
+      bool songExists = await ss.getSongByPath(song.data);
+      
+      if (!songExists) {
+        await ss.addSongToDb(song.data);
+        addedCount++;
+        logger.i('Добавлен трек в БД: ${song.title}');
+      }
+    } catch (e, stackTrace) {
+      logger.e('Ошибка при добавлении трека ${song.title}', error: e, stackTrace: stackTrace);
+    }
+  }
+  
+  if (addedCount > 0) {
+    logger.i('Добавлено новых треков в БД: $addedCount');
+  } else {
+    logger.i('Все треки уже есть в БД');
+  }
+
   }
 
   // Функция для отображения диалога выбора плейлиста
