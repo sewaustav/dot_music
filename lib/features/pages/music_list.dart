@@ -15,6 +15,7 @@ class SongListWidget extends StatefulWidget {
 class _SongListWidgetState extends State<SongListWidget> {
   List<SongModel> songs = [];
   bool isLoading = true;
+  int countTracks = 0;
 
   @override
   void initState() {
@@ -24,15 +25,19 @@ class _SongListWidgetState extends State<SongListWidget> {
 
   Future<void> _loadSongs() async {
   final ss = SongService();
+  final pv = PlaylistView();
   setState(() {
     isLoading = true;
   });
 
   List<SongModel> fetchedSongs = await loadSongs();
+  int count = await pv.getCountTrack();
+  logger.i("$count");
   
   // Сначала загружаем UI, чтобы пользователь не ждал
   setState(() {
     songs = fetchedSongs;
+    countTracks = count;
     isLoading = false;
   });
 

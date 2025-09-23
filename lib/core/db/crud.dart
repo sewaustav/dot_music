@@ -78,7 +78,7 @@ class PlaylistView {
     return await db.rawQuery(
       """SELECT * 
       FROM playlist_tracks 
-      JOIN tracks ON playlist_tracks.track_id = track_id
+      JOIN tracks ON playlist_tracks.track_id = tracks.id
       WHERE playlist_tracks.playlist_id = ?""",
       [playlist]
     );
@@ -92,7 +92,15 @@ class PlaylistView {
         SELECT * FROM playlist_tracks WHERE playlist_id = ?
       """,
       [playlist]
+    );  
+  }
+
+  Future<int> getCountTrack() async {
+    final db = await _db;
+    final count =  await db.rawQuery(
+      """SELECT * FROM playlist_tracks"""
     );
+    return count.length;
   }
 
 }
@@ -124,7 +132,7 @@ class SongService {
       [path]
     );
 
-    return result.first['exists'] == 1;
+    return result.first['track_exists'] == 1;
   }
 
 }
