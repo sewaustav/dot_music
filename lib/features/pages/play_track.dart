@@ -19,30 +19,58 @@ class _PlayTrackPageState extends State<PlayTrackPage> {
   List<SongModel> _songs = [];
   String? _error;
   int _currentIndex = 0;
+  final OnAudioQuery _audioQuery = OnAudioQuery();
 
-  @override 
+  @override
   void initState() {
     super.initState();
     _currentIndex = widget.index;
-    audioHandler.playFromFile(widget.path);
+    logger.i('Инициализация PlayTrackPage, путь: ${widget.path}, индекс: ${widget.index}');
+    _playTrack();
     _loadSongs();
-    logger.i("${widget.index}");
+  }
+
+  Future<void> _playTrack() async {
+    try {
+      logger.i('Попытка воспроизведения: ${widget.path}');
+      await audioHandler.playFromFile(widget.path);
+      logger.i('Воспроизведение начато');
+    } catch (e, stackTrace) {
+      logger.e('Ошибка воспроизведения', error: e, stackTrace: stackTrace);
+      if (mounted) {
+        setState(() {
+          _error = 'Ошибка воспроизведения: $e';
+        });
+      }
+    }
   }
 
   Future<void> _loadSongs() async {
     try {
-      // TODO change way of load track for reuse page
-      final songs = await loadSongs();
+      logger.i('Загрузка списка треков для PlayTrackPage');
+      final songs = await _audioQuery.querySongs(
+        sortType: SongSortType.TITLE,
+        orderType: OrderType.ASC_OR_SMALLER,
+        uriType: UriType.EXTERNAL,
+      );
+      final filteredSongs = songs
+          .where((song) =>
+              song.data != null &&
+              song.data.isNotEmpty &&
+              song.title != null &&
+              song.title.isNotEmpty)
+          .toList();
+      logger.i('Загружено ${filteredSongs.length} треков');
       if (mounted) {
         setState(() {
-          _songs = songs;
+          _songs = filteredSongs;
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      logger.e('Ошибка загрузки песен', error: e, stackTrace: stackTrace);
       if (mounted) {
         setState(() {
-          _error = "Ошибка загрузки песен: $e";
-          logger.e(_error);
+          _error = 'Ошибка загрузки песен: $e';
         });
       }
     }
@@ -52,6 +80,7 @@ class _PlayTrackPageState extends State<PlayTrackPage> {
     if (_songs.isNotEmpty) {
       String nextSong = getNextSong(_songs, _currentIndex);
       int nextIndex = (_currentIndex + 1) % _songs.length;
+      logger.i('Переход к следующему треку: $nextSong, индекс: $nextIndex');
       audioHandler.stop();
       audioHandler.playFromFile(nextSong);
       setState(() {
@@ -64,6 +93,7 @@ class _PlayTrackPageState extends State<PlayTrackPage> {
     if (_songs.isNotEmpty) {
       String prevSong = getPreviousSong(_songs, _currentIndex);
       int prevIndex = (_currentIndex - 1) >= 0 ? _currentIndex - 1 : _songs.length - 1;
+      logger.i('Переход к предыдущему треку: $prevSong, индекс: $prevIndex');
       audioHandler.stop();
       audioHandler.playFromFile(prevSong);
       setState(() {
@@ -76,6 +106,7 @@ class _PlayTrackPageState extends State<PlayTrackPage> {
     if (_songs.isNotEmpty) {
       String randomSong = getRandomSong(_songs, _currentIndex);
       int randomIndex = (_songs.indexWhere((song) => song.data == randomSong));
+      logger.i('Переход к случайному треку: $randomSong, индекс: $randomIndex');
       audioHandler.stop();
       audioHandler.playFromFile(randomSong);
       setState(() {
@@ -86,9 +117,9 @@ class _PlayTrackPageState extends State<PlayTrackPage> {
 
   @override
   Widget build(BuildContext context) {
-    String currentSongTitle = _songs.isNotEmpty && _currentIndex < _songs.length 
-        ? _songs[_currentIndex].title 
-        : "No track loaded";
+    String currentSongTitle = _songs.isNotEmpty && _currentIndex < _songs.length
+        ? _songs[_currentIndex].title
+        : "Трек не загружен";
 
     return Scaffold(
       appBar: AppBar(
@@ -96,27 +127,33 @@ class _PlayTrackPageState extends State<PlayTrackPage> {
       ),
       body: Column(
         children: [
-          Text("Path: ${widget.path} Index: $_currentIndex"),
+          Text("Путь: ${widget.path} Индекс: $_currentIndex"),
           if (_error != null) Text(_error!, style: const TextStyle(color: Colors.red)),
           ElevatedButton(
-            onPressed: () => audioHandler.pause(),
-            child: const Text("Pause"),
+            onPressed: () {
+              logger.i('Пауза воспроизведения');
+              audioHandler.pause();
+            },
+            child: const Text("Пауза"),
           ),
           ElevatedButton(
-            onPressed: () => audioHandler.play(),
-            child: const Text("Resume"),
+            onPressed: () {
+              logger.i('Возобновление воспроизведения');
+              audioHandler.play();
+            },
+            child: const Text("Возобновить"),
           ),
           ElevatedButton(
             onPressed: _playNextSong,
-            child: const Text("Next"),
+            child: const Text("Следующий"),
           ),
           ElevatedButton(
             onPressed: _playPreviousSong,
-            child: const Text("Prev"),
+            child: const Text("Предыдущий"),
           ),
           ElevatedButton(
             onPressed: _playRandomSong,
-            child: const Text("Random"),
+            child: const Text("Случайный"),
           ),
         ],
       ),
