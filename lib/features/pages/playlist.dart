@@ -31,9 +31,9 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   // Пустые действия для кнопок
-  void _playSong(Map<String, dynamic> song) {
+  void _playSong(Map<String, dynamic> song, int index) {
     // TODO: Добавить логику воспроизведения
-    context.push("/player", extra: {"songData": "/", "index": 0, "playlist": 3});
+    context.push("/player", extra: {"songData": song["path"], "index": index, "playlist": 3});
     logger.i("Воспроизведение трека: ${song['title']}");
   }
 
@@ -75,7 +75,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.play_arrow, color: Colors.green),
-                          onPressed: () => _playSong(song),
+                          onPressed: () => _playSong(song, index),
                           tooltip: 'Воспроизвести',
                         ),
                         IconButton(
@@ -85,7 +85,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                         ),
                       ],
                     ),
-                    onTap: () => _playSong(song),
+                    onTap: () => _playSong(song, index),
                   ),
                 );
               },

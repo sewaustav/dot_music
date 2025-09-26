@@ -75,16 +75,25 @@ class PlaylistView {
   Future<List<Map<String, dynamic>>> getSongsFromPlaylist(int playlist) async {
     final db = await _db;
 
-    return await db.rawQuery(
+    final result = await db.rawQuery(
       """SELECT * 
       FROM playlist_tracks 
       JOIN tracks ON playlist_tracks.track_id = tracks.id
       WHERE playlist_tracks.playlist_id = ?""",
       [playlist]
     );
+
+    return result.map((row) {
+      final Map<String, dynamic> newMap = {};
+      row.forEach((key, value) {
+        newMap[key.toString()] = value;
+      });
+      return newMap;
+    }).toList();
+
   }
 
-  Future<List<Map<String, dynamic>>> getSongsIdFromPlaylist(String playlist) async {
+  Future<List<Map<String, dynamic>>> getSongsIdFromPlaylist(int playlist) async {
     final db = await _db;
 
     return await db.rawQuery(
