@@ -16,6 +16,8 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   List<Map<String, dynamic>> _songs = [];
 
+  final ps = PlaylistService();
+
   Future<List<Map<String, dynamic>>> _getSongs() async {
     final pv = PlaylistView();
     return await pv.getSongsFromPlaylist(widget.playlist);
@@ -34,14 +36,19 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   // Пустые действия для кнопок
   void _playSong(Map<String, dynamic> song, int index) {
-    // TODO: Добавить логику воспроизведения
     context.push("/player", extra: {"songData": song["path"], "index": index, "playlist": widget.playlist});
     logger.i("Воспроизведение трека: ${song['title']}");
   }
 
-  void _removeFromPlaylist(Map<String, dynamic> song) {
+  Future<void> _removeFromPlaylist(Map<String, dynamic> song) async {
     // TODO: Добавить логику удаления из плейлиста
+    logger.i("${widget.playlist} --- ${song["path"]}");
+    await ps.deleteFromPlaylist(widget.playlist.toString(), song["path"]);
+    setState(() {
+      _songs.removeWhere((s) => s['path'] == song['path']);
+    });
     logger.i("Удаление трека из плейлиста: ${song['title']}");
+    
   }
 
   @override
@@ -82,7 +89,10 @@ class _PlaylistPageState extends State<PlaylistPage> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _removeFromPlaylist(song),
+                          onPressed: () async {
+                              logger.i("delete");
+                              await _removeFromPlaylist(song);
+                            },
                           tooltip: 'Удалить из плейлиста',
                         ),
                       ],

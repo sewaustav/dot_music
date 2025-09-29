@@ -47,10 +47,10 @@ class PlaylistService {
   }
 
   // delete from playlist
-  Future<void> deleteFromPlaylist(String playlistName, String trackPath) async {
+  Future<void> deleteFromPlaylist(String playlistId, String trackPath) async {
     final db = await _db;
 
-    final playlistId = await _dbHelper.getPlaylistIdByName(playlistName);
+    // final playlistId = await _dbHelper.getPlaylistIdByName(playlistName);
     final trackId = await _dbHelper.getTrackIdByPath(trackPath);
 
     await db.rawDelete(
