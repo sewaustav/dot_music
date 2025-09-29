@@ -19,10 +19,10 @@ class PlaylistService {
   }
 
   // delete plaulistno
-  Future<int> deletePlaylist(String playlist) async {
+  Future<int> deletePlaylist(int playlist) async {
     final db = await _db;
     return await db.rawDelete(
-      'DELETE FROM playlist WHERE name = ?', [playlist]
+      'DELETE FROM playlists WHERE id = ?', [playlist]
     );
   }
 
