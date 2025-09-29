@@ -4,14 +4,11 @@ import 'package:just_audio/just_audio.dart';
 class MyAudioHandler extends BaseAudioHandler {
   final _player = AudioPlayer();
 
-  // колбэк, чтобы сообщать о конце трека
   void Function()? onTrackComplete;
 
   MyAudioHandler() {
-    // обновляем системные контролы
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
 
-    // отслеживаем завершение трека
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
         if (onTrackComplete != null) onTrackComplete!();
@@ -19,16 +16,12 @@ class MyAudioHandler extends BaseAudioHandler {
     });
   }
 
-  /// 🎵 Стрим текущей позиции
   Stream<Duration> get positionStream => _player.positionStream;
 
-  /// 🎵 Стрим длительности (может быть null)
   Stream<Duration?> get durationStream => _player.durationStream;
 
-  /// ⏩ Перемотка
   Future<void> seek(Duration position) => _player.seek(position);
 
-  /// 🎵 Воспроизведение файла
   Future<void> playFromFile(String path) async {
     await _player.setFilePath(path);
     await _player.play();
