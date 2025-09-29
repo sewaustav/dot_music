@@ -2,6 +2,7 @@ import 'package:dot_music/features/pages/music_list.dart';
 import 'package:dot_music/features/pages/play_track.dart';
 import 'package:dot_music/features/pages/play_track_pl.dart';
 import 'package:dot_music/features/pages/playlist.dart';
+import 'package:dot_music/features/pages/playlist_list.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dot_music/features/pages/home.dart';
 
@@ -30,7 +31,14 @@ final router = GoRouter(
         ),
         GoRoute(
           path: "/playlists",
-          builder: (context, state) => const PlaylistPage()
+          builder: (context, state) {
+            final extra = state.extra as int;
+            return PlaylistPage(playlist: extra);
+          }
+        ),
+        GoRoute(
+          path: "/listpl",
+          builder: (context, state) => const PlaylistsListPage()
         ),
         GoRoute(
           path: "/player",

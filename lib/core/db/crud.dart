@@ -1,4 +1,3 @@
-import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/core/service.dart';

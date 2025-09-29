@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class PlaylistPage extends StatefulWidget {
-  const PlaylistPage({super.key});
+  const PlaylistPage({super.key, required this.playlist});
+
+  final int playlist;
 
   @override
   State<PlaylistPage> createState() => _PlaylistPageState();
@@ -16,7 +18,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   Future<List<Map<String, dynamic>>> _getSongs() async {
     final pv = PlaylistView();
-    return await pv.getSongsFromPlaylist(3);
+    return await pv.getSongsFromPlaylist(widget.playlist);
   }
 
   @override
@@ -33,7 +35,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
   // Пустые действия для кнопок
   void _playSong(Map<String, dynamic> song, int index) {
     // TODO: Добавить логику воспроизведения
-    context.push("/player", extra: {"songData": song["path"], "index": index, "playlist": 3});
+    context.push("/player", extra: {"songData": song["path"], "index": index, "playlist": widget.playlist});
     logger.i("Воспроизведение трека: ${song['title']}");
   }
 

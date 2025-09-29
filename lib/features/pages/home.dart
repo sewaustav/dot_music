@@ -25,7 +25,7 @@ class HomePage extends StatelessWidget {
           ),
 
           ElevatedButton(
-            onPressed: () => context.push("/playlists"), 
+            onPressed: () => context.push("/listpl"), 
             child: Text("data")
           ),
       

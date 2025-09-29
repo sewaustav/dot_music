@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:dot_music/features/music_library.dart';
 
 class SongListWidget extends StatefulWidget {
   const SongListWidget({super.key});
