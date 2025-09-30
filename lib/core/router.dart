@@ -23,8 +23,8 @@ final router = GoRouter(
           path: "/track",
           builder: (context, state) {
             final extra = state.extra as Map<String, dynamic>;
-            final path = extra["songData"] as String; // Предполагается, что song.data — это строка
-            final index = extra["index"] as int; // Предполагается, что index — это int
+            final path = extra["songData"] as String;
+            final index = extra["index"] as int; 
             final page = PlayTrackPage(path: path, index: index);
             return page;
           },
@@ -44,8 +44,8 @@ final router = GoRouter(
           path: "/player",
           builder: (context, state) {
             final extra = state.extra as Map<String, dynamic>;
-            final path = extra["songData"] as String; // Предполагается, что song.data — это строка
-            final index = extra["index"] as int; // Предполагается, что index — это int
+            final path = extra["songData"] as String; 
+            final index = extra["index"] as int; 
             final playlist = extra["playlist"] as int;
             final page = PlayerPage(path: path, index: index, playlist: playlist,);
             return page;

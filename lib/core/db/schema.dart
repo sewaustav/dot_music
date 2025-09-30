@@ -29,9 +29,21 @@ class Schema {
     );
   ''';
 
+  static const String createStatTable = '''
+    CREATE TABLE listening_stat (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      track_id INTEGER NOT NULL,
+      month TEXT NOT NULL,
+      playback_count INTEGER DEFAULT 0,
+
+      FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
+    );
+  ''';
+
   static List<String> get createTables => [
         createTracksTable,
         createPlaylistsTable,
         createPlaylistTracksTable,
+        createStatTable
       ];
 }

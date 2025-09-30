@@ -13,7 +13,7 @@ class PlaylistsListPage extends StatefulWidget {
 class _PlaylistPageSate extends State<PlaylistsListPage> {
   List<Map<String, dynamic>> _playlists = [];
   final pv = PlaylistView();
-  final ps = PlaylistService(); // Добавил сервис для удаления
+  final ps = PlaylistService(); 
 
   @override
   void initState() {
@@ -29,9 +29,7 @@ class _PlaylistPageSate extends State<PlaylistsListPage> {
     return await pv.getAllPlaylists();
   }
 
-  // Пустой метод для удаления плейлиста
   Future<void> _deletePlaylist(int playlistId, String playlistName) async {
-    // TODO: Добавить логику удаления плейлиста
     logger.i("Удаление плейлиста: $playlistName (ID: $playlistId)");
   
     await ps.deletePlaylist(playlistId);
@@ -69,7 +67,7 @@ class _PlaylistPageSate extends State<PlaylistsListPage> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Кнопка удаления
+
                       IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
                         onPressed: () => _deletePlaylist(

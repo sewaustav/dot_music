@@ -14,6 +14,8 @@ class DatabaseHelper {
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
+  static const int databaseVersion = 2;
+
   static Database? _db;
 
   Future<Database> get db async {
@@ -30,14 +32,32 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
       onOpen: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
-    },
-);
+      },
+    );
 
   }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(Schema.createStatTable);
+    }
+  }
+
+  Future<List<String>> getAllTables() async {
+    final database = await db;
+    final List<Map<String, dynamic>> tables = await database.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    );
+    
+    logger.i("Все таблицы в базе: ${tables.map((t) => t['name']).toList()}");
+    return tables.map((table) => table['name'] as String).toList();
+  }
+
 
   Future<void> resetDatabase() async {
     final database = await db;

@@ -1,4 +1,5 @@
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/core/db/db.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,6 +11,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final dh = DatabaseHelper();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   bool _showForm = false;
@@ -29,7 +31,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea( // ← вот это добавляем
+      body: SafeArea( 
         child: ListView(
           padding: EdgeInsets.all(16),
           children: [
@@ -99,6 +101,11 @@ class _HomePageState extends State<HomePage> {
               onPressed: () => context.push("/listpl"), 
               child: Text("data")
             ),
+
+            ElevatedButton(
+              onPressed: () async => await dh.getAllTables(), 
+              child: Text("TTTTTTT")
+            )
           ],
         ),
       ),
