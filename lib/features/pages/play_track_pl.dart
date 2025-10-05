@@ -2,8 +2,11 @@ import 'dart:math';
 
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/core/db/db.dart';
+import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/player/audio.dart';
 import 'package:flutter/material.dart';
+import 'package:sqflite/sqflite.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({super.key, required this.path, required this.playlist, required this.index});
@@ -39,6 +42,7 @@ class _PlayerPageState extends State<PlayerPage> {
           _currentSongIndex = widget.index;
         });
 
+
         // колбэк для автоперехода
         audioHandler.onTrackComplete = () {
           _playNextSong(_currentSongIndex);
@@ -48,6 +52,7 @@ class _PlayerPageState extends State<PlayerPage> {
       }
     });
 
+    
     // позиция
     audioHandler.positionStream.listen((pos) {
       if (mounted) {
@@ -73,6 +78,7 @@ class _PlayerPageState extends State<PlayerPage> {
     try {
       logger.i('Попытка воспроизведения: ${widget.path}');
       await audioHandler.playFromFile(widget.path);
+      await updateCount(_currentSongIndex);
       logger.i('Воспроизведение начато');
     } catch (e, stackTrace) {
       logger.e('Ошибка воспроизведения', error: e, stackTrace: stackTrace);
@@ -88,7 +94,16 @@ class _PlayerPageState extends State<PlayerPage> {
     return await pv.getSongsFromPlaylist(widget.playlist);
   }
 
- 
+  Future<Database> get _db async => await DatabaseHelper().db;
+
+  Future<void> updateCount(int trackId) async {
+    logger.w("🔥 updateCount() вызван с trackId=$trackId");
+    final db = await _db;
+    final stat = StatRepository(db);
+    await stat.registerPlayback(trackId);
+    int playbackCount = await stat.getPlaybackCount(trackId);
+    logger.i("Playback count - $playbackCount");
+  }
 
   void _playNextSong(int index) {
     if (_songs.isNotEmpty) {

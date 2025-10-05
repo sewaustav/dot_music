@@ -6,12 +6,16 @@ class StatRepository {
 
   StatRepository(this.db);
 
-
   Future<int> getPlaybackCount(int trackId) async {
     final result = await db.rawQuery(
       'SELECT playback_count FROM tracks WHERE id = ?',
       [trackId],
     );
+
+    if (result.isEmpty) {
+      return 0;
+    }
+
     return result.first['playback_count'] as int;
   }
 
@@ -24,7 +28,7 @@ class StatRepository {
 
   Future<bool> monthlyStatExists(int trackId, int month, int year) async {
     final res = await db.rawQuery(
-      'SELECT 1 FROM listening_stat WHERE track_id = ? AND month = ? AND year = ?',
+      'SELECT * FROM listening_stat WHERE track_id = ? AND month = ? AND year = ?',
       [trackId, month, year],
     );
     return res.isNotEmpty;
@@ -50,24 +54,17 @@ class StatRepository {
       [trackId, month, year],
     );
   }
-}
-
-class StatService {
-  final StatRepository repository;
-
-  StatService(this.repository);
 
   Future<void> registerPlayback(int trackId) async {
-    final currentCount = await repository.getPlaybackCount(trackId);
-    await repository.updateTrackPlaybackCount(trackId, currentCount + 1);
+    final currentCount = await getPlaybackCount(trackId);
+    await updateTrackPlaybackCount(trackId, currentCount + 1);
 
     final now = DateTime.now();
-    final exists = await repository.monthlyStatExists(trackId, now.month, now.year);
+    final exists = await monthlyStatExists(trackId, now.month, now.year);
     if (exists) {
-      await repository.incrementMonthlyStat(trackId, now.month, now.year);
+      await incrementMonthlyStat(trackId, now.month, now.year);
     } else {
-      await repository.createMonthlyStat(trackId, now.month, now.year);
+      await createMonthlyStat(trackId, now.month, now.year);
     }
   }
 }
-
