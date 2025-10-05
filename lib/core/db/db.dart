@@ -14,7 +14,7 @@ class DatabaseHelper {
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
-  static const int databaseVersion = 2;
+  static const int databaseVersion = 3;
 
   static Database? _db;
 
@@ -45,6 +45,9 @@ class DatabaseHelper {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await db.execute(Schema.createStatTable);
+    }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE listening_stat ADD COLUMN year INTEGER DEFAULT 0');
     }
   }
 

@@ -41,7 +41,6 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   Future<void> _removeFromPlaylist(Map<String, dynamic> song) async {
-    // TODO: Добавить логику удаления из плейлиста
     logger.i("${widget.playlist} --- ${song["path"]}");
     await ps.deleteFromPlaylist(widget.playlist.toString(), song["path"]);
     setState(() {

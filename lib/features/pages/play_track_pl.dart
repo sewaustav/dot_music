@@ -42,17 +42,15 @@ class _PlayerPageState extends State<PlayerPage> {
           _currentSongIndex = widget.index;
         });
 
-
-        // колбэк для автоперехода
         audioHandler.onTrackComplete = () {
           _playNextSong(_currentSongIndex);
         };
+        logger.i(_currentSongIndex);
 
         _playTrack();
       }
     });
 
-    
     // позиция
     audioHandler.positionStream.listen((pos) {
       if (mounted) {
@@ -78,7 +76,7 @@ class _PlayerPageState extends State<PlayerPage> {
     try {
       logger.i('Попытка воспроизведения: ${widget.path}');
       await audioHandler.playFromFile(widget.path);
-      await updateCount(_currentSongIndex);
+      //await updateCount();
       logger.i('Воспроизведение начато');
     } catch (e, stackTrace) {
       logger.e('Ошибка воспроизведения', error: e, stackTrace: stackTrace);

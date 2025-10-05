@@ -28,7 +28,7 @@ class StatRepository {
 
   Future<bool> monthlyStatExists(int trackId, int month, int year) async {
     final res = await db.rawQuery(
-      'SELECT * FROM listening_stat WHERE track_id = ? AND month = ? AND year = ?',
+      'SELECT 1 FROM listening_stat WHERE track_id = ? AND month = ? AND year = ?',
       [trackId, month, year],
     );
     return res.isNotEmpty;
