@@ -8,8 +8,9 @@ import 'package:dot_music/core/db/db.dart';
 
 void main() async {
     WidgetsFlutterBinding.ensureInitialized();
-    final dbHelper = DatabaseHelper();
-    await dbHelper.db;
+    // await DatabaseHelper().deleteDatabaseFile();
+    await DatabaseHelper().db;
+
     await initAudioService();
     runApp(DotMusic());
 }

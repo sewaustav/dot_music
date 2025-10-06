@@ -24,6 +24,7 @@ class _PlayerPageState extends State<PlayerPage> {
   String? _error;
   List<Map<String, dynamic>> _songs = [];
   int _currentSongIndex = 0;
+  int _playbackCount = 0; // ← вот эта переменная
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
 
@@ -42,12 +43,17 @@ class _PlayerPageState extends State<PlayerPage> {
           _currentSongIndex = widget.index;
         });
 
+        logger.i(" ttt -$_songs");
+
         audioHandler.onTrackComplete = () {
           _playNextSong(_currentSongIndex);
         };
         logger.i(_currentSongIndex);
 
         _playTrack();
+        
+        // 🔥 Загружаем начальное значение счетчика
+        _loadPlaybackCount(_songs[widget.index]["id"]);
       }
     });
 
@@ -70,13 +76,28 @@ class _PlayerPageState extends State<PlayerPage> {
     });
   }
 
-
+  // 🔥 Новый метод для загрузки счетчика
+  Future<void> _loadPlaybackCount(int trackId) async {
+    try {
+      final db = await _db;
+      final stat = StatRepository(db);
+      final count = await stat.getPlaybackCount(trackId);
+      if (mounted) {
+        setState(() {
+          _playbackCount = count;
+        });
+      }
+    } catch (e) {
+      logger.e("Ошибка загрузки счетчика прослушиваний", error: e);
+    }
+  }
 
   Future<void> _playTrack() async {
     try {
       logger.i('Попытка воспроизведения: ${widget.path}');
       await audioHandler.playFromFile(widget.path);
-      //await updateCount();
+      logger.i(_songs[_currentSongIndex]["id"]);
+      await updateCount(_songs[_currentSongIndex]["id"]);
       logger.i('Воспроизведение начато');
     } catch (e, stackTrace) {
       logger.e('Ошибка воспроизведения', error: e, stackTrace: stackTrace);
@@ -100,10 +121,18 @@ class _PlayerPageState extends State<PlayerPage> {
     final stat = StatRepository(db);
     await stat.registerPlayback(trackId);
     int playbackCount = await stat.getPlaybackCount(trackId);
+    
+    // 🔥 Присваиваем значение в переменную и обновляем UI
+    if (mounted) {
+      setState(() {
+        _playbackCount = playbackCount;
+      });
+    }
+    
     logger.i("Playback count - $playbackCount");
   }
 
-  void _playNextSong(int index) {
+  Future<void> _playNextSong(int index) async {
     if (_songs.isNotEmpty) {
       logger.i("Current - $index");
       audioHandler.stop();
@@ -112,18 +141,17 @@ class _PlayerPageState extends State<PlayerPage> {
         setState(() {
           _currentSongIndex = 0;
         });
-        logger.i("Next - 0");
       } else {
         audioHandler.playFromFile(_songs[index+1]["path"]);
         setState(() {
           _currentSongIndex = _currentSongIndex + 1;
         });
-        logger.i("Next - ${index+1}");
       }
+      await updateCount(_songs[_currentSongIndex]["id"]);
     }
   }
 
-  void _playPreviousSong(int index) {
+  Future<void> _playPreviousSong(int index) async {
     if (_songs.isNotEmpty) {
       logger.i("Current - ${_songs[index]["path"]}");
       audioHandler.stop();
@@ -132,18 +160,17 @@ class _PlayerPageState extends State<PlayerPage> {
         setState(() {
           _currentSongIndex = _songs.length-1;
         });
-        logger.i("Next - ${_songs[_songs.length-1]["path"]}");
       } else {
         audioHandler.playFromFile(_songs[index-1]["path"]);
         setState(() {
           _currentSongIndex = _currentSongIndex-1;
         });
-        logger.i("Next - ${_songs[index-1]["path"]}");
       }
+      await updateCount(_songs[_currentSongIndex]["id"]);
     }
   }
 
-  void _playRandomSong(int index) {
+  Future<void> _playRandomSong(int index) async {
     audioHandler.stop();
     Random random = Random();
     logger.i("Current - ${_songs[index]["path"]}");
@@ -155,6 +182,7 @@ class _PlayerPageState extends State<PlayerPage> {
     setState(() {
       _currentSongIndex = nextSong;
     });
+    await updateCount(_songs[_currentSongIndex]["id"]);
   }
 
   void _stopPlayback() {
@@ -211,6 +239,16 @@ class _PlayerPageState extends State<PlayerPage> {
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[500],
+                      ),
+                    ),
+                    // 🔥 Отображение счетчика прослушиваний
+                    const SizedBox(height: 4),
+                    Text(
+                      "Прослушиваний: $_playbackCount",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.deepPurple[600],
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],

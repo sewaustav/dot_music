@@ -14,7 +14,7 @@ class DatabaseHelper {
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
-  static const int databaseVersion = 3;
+  static const int databaseVersion = 1;
 
   static Database? _db;
 
@@ -84,6 +84,15 @@ class DatabaseHelper {
   FutureOr<void> _onCreate(Database db, int version) async {
     for (final table in Schema.createTables) {
       await db.execute(table);
+    }
+  }
+
+  Future<void> deleteDatabaseFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final path = join(dir.path, 'my_database.db');
+    if (await File(path).exists()) {
+      await File(path).delete();
+      logger.i('База данных удалена физически.');
     }
   }
 
