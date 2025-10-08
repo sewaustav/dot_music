@@ -1,8 +1,12 @@
 import 'package:dot_music/features/pages/music_list.dart';
 import 'package:dot_music/features/pages/play_track.dart';
 import 'package:dot_music/features/pages/play_track_pl.dart';
-import 'package:dot_music/features/pages/playlist.dart';
-import 'package:dot_music/features/pages/playlist_list.dart';
+import 'package:dot_music/features/pages/playlist/playlist.dart';
+import 'package:dot_music/features/pages/playlist/playlist_list.dart';
+import 'package:dot_music/features/pages/stat/annual_stat.dart';
+import 'package:dot_music/features/pages/stat/montly_stat.dart';
+import 'package:dot_music/features/pages/stat/stat_page.dart';
+import 'package:dot_music/features/pages/stat/top_stat.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dot_music/features/pages/home.dart';
 
@@ -50,6 +54,28 @@ final router = GoRouter(
             final page = PlayerPage(path: path, index: index, playlist: playlist,);
             return page;
           },
+        ),
+        GoRoute(
+          path: "/statistic",
+          builder: (context, state) => const StatPage()
+        ),
+        GoRoute(
+          path: "/statistic/top",
+          builder: (context, state) => const TopStatPage()
+        ),
+        GoRoute(
+          path: "/statistic/month",
+          builder: (context, state) {
+            final month = state.extra as int;
+            return MonthlyStatPage(month: month);
+          }
+        ),
+        GoRoute(
+          path: "/statistic/year",
+          builder: (context, state) {
+            final year = state.extra as int;
+            return AnnualStatPage(year: year);
+          }
         ),
 
     ]

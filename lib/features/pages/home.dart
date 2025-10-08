@@ -103,6 +103,11 @@ class _HomePageState extends State<HomePage> {
             ),
 
             ElevatedButton(
+              onPressed: () => context.push("/statistic"), 
+              child: Text("top")
+            ),
+
+            ElevatedButton(
               onPressed: () async => await dh.getAllTables(), 
               child: Text("TTTTTTT")
             )
