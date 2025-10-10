@@ -1,5 +1,6 @@
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
+import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
@@ -91,15 +92,10 @@ class _PlaylistFormOverlay extends StatefulWidget {
 
 class __PlaylistFormOverlayState extends State<_PlaylistFormOverlay> {
   final FocusNode _focusNode = FocusNode();
-  final Color primary = const Color(0xFF02315E);
-  final Color accent = const Color(0xFF2F70AF);
-  final Color secondary = const Color(0xFF00457E);
-  final Color textColor = const Color(0xFFFFFFFF);
 
   @override
   void initState() {
     super.initState();
-    // Авто-фокус при открытии
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -115,7 +111,6 @@ class __PlaylistFormOverlayState extends State<_PlaylistFormOverlay> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Закрываем клавиатуру при тапе на затемненную область
         _focusNode.unfocus();
       },
       child: Container(
@@ -288,15 +283,7 @@ class HomePageUI extends StatefulWidget {
 }
 
 class _HomePageUIState extends State<HomePageUI> {
-  // Цветовая палитра
-  final Color primary = const Color(0xFF02315E);
-  final Color secondary = const Color(0xFF00457E);
-  final Color accent = const Color(0xFF2F70AF);
-  final Color purple = const Color(0xFF806491);
-  final Color background = const Color(0xFF0A0A0A);
-  final Color textColor = const Color(0xFFFFFFFF);
 
-  // Для анимации заголовка
   String fullText = "Dot Music";
   String displayedText = "";
   bool deleting = false;
@@ -382,13 +369,11 @@ class _HomePageUIState extends State<HomePageUI> {
       color: background,
       child: Column(
         children: [
-          // Верхняя часть с заголовком
           Expanded(
             child: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Анимированный заголовок
                   Text(
                     displayedText,
                     style: TextStyle(
@@ -402,7 +387,6 @@ class _HomePageUIState extends State<HomePageUI> {
 
                   const SizedBox(height: 8),
 
-                  // Слоган
                   Text(
                     "Listen. Dot.",
                     style: TextStyle(
@@ -415,7 +399,6 @@ class _HomePageUIState extends State<HomePageUI> {
 
                   const SizedBox(height: 48),
 
-                  // Кнопка статистики
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: purple,
@@ -445,20 +428,18 @@ class _HomePageUIState extends State<HomePageUI> {
             ),
           ),
 
-          // Нижняя панель управления
           Container(
             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Кнопка плейлистов
+
                 _buildIconButton(
                   icon: Icons.queue_music_rounded,
                   onPressed: widget.onGoToPlaylists,
                   color: primary,
                 ),
 
-                // Центральная кнопка создания плейлиста
                 _buildIconButton(
                   icon: Icons.add_rounded,
                   onPressed: widget.onToggleForm,
@@ -466,7 +447,6 @@ class _HomePageUIState extends State<HomePageUI> {
                   size: 72,
                 ),
 
-                // Кнопка всех треков
                 _buildIconButton(
                   icon: Icons.music_note_rounded,
                   onPressed: widget.onGoToTracks,
@@ -476,7 +456,6 @@ class _HomePageUIState extends State<HomePageUI> {
             ),
           ),
 
-          // Debug кнопка (скрытая в углу)
           Align(
             alignment: Alignment.bottomRight,
             child: Padding(
