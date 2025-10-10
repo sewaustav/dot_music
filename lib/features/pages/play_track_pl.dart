@@ -1,12 +1,16 @@
 import 'dart:math';
+import 'dart:ui';
 
+import 'package:flutter/material.dart';
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/player/audio.dart';
-import 'package:flutter/material.dart';
+import 'package:dot_music/design/colors.dart';
 import 'package:sqflite/sqflite.dart';
+
+// Spotify-like player UI — updated per review
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({super.key, required this.path, required this.playlist, required this.index});
@@ -20,15 +24,16 @@ class PlayerPage extends StatefulWidget {
 }
 
 class _PlayerPageState extends State<PlayerPage> {
-
   String? _error;
   List<Map<String, dynamic>> _songs = [];
   int _currentSongIndex = 0;
-  int _playbackCount = 0; // ← вот эта переменная
+  int _playbackCount = 0;
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
 
-  
+  // UI state: default to playing (show ||) as requested
+  bool _isPlaying = true;
+  RepeatMode _repeatMode = RepeatMode.off;
 
   final pv = PlaylistView();
 
@@ -43,21 +48,17 @@ class _PlayerPageState extends State<PlayerPage> {
           _currentSongIndex = widget.index;
         });
 
-        logger.i(" ttt -$_songs");
-
         audioHandler.onTrackComplete = () {
-          _playNextSong(_currentSongIndex);
+          // keep default behavior: play next in queue
+          _handleTrackComplete();
         };
-        logger.i(_currentSongIndex);
 
+        // start playback for the provided path
         _playTrack();
-        
-        // 🔥 Загружаем начальное значение счетчика
         _loadPlaybackCount(_songs[widget.index]["id"]);
       }
     });
 
-    // позиция
     audioHandler.positionStream.listen((pos) {
       if (mounted) {
         setState(() {
@@ -66,7 +67,6 @@ class _PlayerPageState extends State<PlayerPage> {
       }
     });
 
-    // длительность
     audioHandler.durationStream.listen((dur) {
       if (mounted) {
         setState(() {
@@ -76,351 +76,421 @@ class _PlayerPageState extends State<PlayerPage> {
     });
   }
 
-  // 🔥 Новый метод для загрузки счетчика
+  Future<List<Map<String, dynamic>>> _getSongs() async => await pv.getSongsFromPlaylist(widget.playlist);
+
+  Future<Database> get _db async => await DatabaseHelper().db;
+
   Future<void> _loadPlaybackCount(int trackId) async {
     try {
       final db = await _db;
       final stat = StatRepository(db);
       final count = await stat.getPlaybackCount(trackId);
-      if (mounted) {
-        setState(() {
-          _playbackCount = count;
-        });
-      }
+      if (mounted) setState(() => _playbackCount = count);
     } catch (e) {
-      logger.e("Ошибка загрузки счетчика прослушиваний", error: e);
+      logger.e('Load playback count failed', error: e);
     }
   }
 
   Future<void> _playTrack() async {
+    if (_songs.isEmpty) return;
     try {
-      logger.i('Попытка воспроизведения: ${widget.path}');
-      await audioHandler.playFromFile(widget.path);
-      logger.i(_songs[_currentSongIndex]["id"]);
+      final path = _songs[_currentSongIndex]['path'];
+      await audioHandler.playFromFile(path);
+      if (mounted) setState(() {
+        _isPlaying = true;
+      });
       await updateCount(_songs[_currentSongIndex]["id"]);
-      logger.i('Воспроизведение начато');
-    } catch (e, stackTrace) {
-      logger.e('Ошибка воспроизведения', error: e, stackTrace: stackTrace);
-      if (mounted) {
-        setState(() {
-          _error = 'Ошибка воспроизведения: $e';
-        });
-      }
+    } catch (e, st) {
+      logger.e('Play failed', error: e, stackTrace: st);
+      if (mounted) setState(() => _error = 'Playback error: $e');
     }
   }
 
-  Future<List<Map<String, dynamic>>> _getSongs() async {
-    return await pv.getSongsFromPlaylist(widget.playlist);
-  }
-
-  Future<Database> get _db async => await DatabaseHelper().db;
-
   Future<void> updateCount(int trackId) async {
-    logger.w("🔥 updateCount() вызван с trackId=$trackId");
     final db = await _db;
     final stat = StatRepository(db);
     await stat.registerPlayback(trackId);
     int playbackCount = await stat.getPlaybackCount(trackId);
-    
-    // 🔥 Присваиваем значение в переменную и обновляем UI
-    if (mounted) {
-      setState(() {
-        _playbackCount = playbackCount;
-      });
-    }
-    
-    logger.i("Playback count - $playbackCount");
+    if (mounted) setState(() => _playbackCount = playbackCount);
   }
 
   Future<void> _playNextSong(int index) async {
-    if (_songs.isNotEmpty) {
-      logger.i("Current - $index");
-      audioHandler.stop();
-      if (index == _songs.length-1) {
-        audioHandler.playFromFile(_songs[0]["path"]);
-        setState(() {
-          _currentSongIndex = 0;
-        });
-      } else {
-        audioHandler.playFromFile(_songs[index+1]["path"]);
-        setState(() {
-          _currentSongIndex = _currentSongIndex + 1;
-        });
-      }
-      await updateCount(_songs[_currentSongIndex]["id"]);
+    if (_songs.isEmpty) return;
+
+    // For now: always play next in queue (wrap-around). You will implement other modes.
+    audioHandler.stop();
+    int nextIndex = (index == _songs.length - 1) ? 0 : index + 1;
+
+    try {
+      await audioHandler.playFromFile(_songs[nextIndex]['path']);
+      if (mounted) setState(() {
+        _currentSongIndex = nextIndex;
+        _isPlaying = true;
+      });
+      await updateCount(_songs[_currentSongIndex]['id']);
+    } catch (e) {
+      logger.e('Next playback failed', error: e);
     }
   }
 
   Future<void> _playPreviousSong(int index) async {
-    if (_songs.isNotEmpty) {
-      logger.i("Current - ${_songs[index]["path"]}");
-      audioHandler.stop();
-      if (index == 0) {
-        audioHandler.playFromFile(_songs[_songs.length-1]["path"]);
-        setState(() {
-          _currentSongIndex = _songs.length-1;
-        });
-      } else {
-        audioHandler.playFromFile(_songs[index-1]["path"]);
-        setState(() {
-          _currentSongIndex = _currentSongIndex-1;
-        });
-      }
-      await updateCount(_songs[_currentSongIndex]["id"]);
+    if (_songs.isEmpty) return;
+    audioHandler.stop();
+    int prev = (index == 0) ? _songs.length - 1 : index - 1;
+
+    try {
+      await audioHandler.playFromFile(_songs[prev]['path']);
+      if (mounted) setState(() {
+        _currentSongIndex = prev;
+        _isPlaying = true;
+      });
+      await updateCount(_songs[_currentSongIndex]['id']);
+    } catch (e) {
+      logger.e('Previous playback failed', error: e);
     }
   }
 
   Future<void> _playRandomSong(int index) async {
+    // kept for completeness but not used as "shuffle" right now
+    if (_songs.isEmpty) return;
     audioHandler.stop();
-    Random random = Random();
-    logger.i("Current - ${_songs[index]["path"]}");
-    int nextSong = random.nextInt(_songs.length);
-    if (nextSong == index) {
-      nextSong = (nextSong + 1) % _songs.length; 
+    int next = Random().nextInt(_songs.length);
+    if (next == index) next = (next + 1) % _songs.length;
+
+    try {
+      await audioHandler.playFromFile(_songs[next]['path']);
+      if (mounted) setState(() {
+        _currentSongIndex = next;
+        _isPlaying = true;
+      });
+      await updateCount(_songs[_currentSongIndex]['id']);
+    } catch (e) {
+      logger.e('Random playback failed', error: e);
     }
-    audioHandler.playFromFile(_songs[nextSong]["path"]);
+  }
+
+  void _togglePlayPause() {
+    if (_isPlaying) {
+      audioHandler.pause();
+    } else {
+      audioHandler.play();
+    }
+    if (mounted) setState(() => _isPlaying = !_isPlaying);
+  }
+
+  void _handleTrackComplete() => _playNextSong(_currentSongIndex);
+
+  // ---------------------- Empty placeholder methods for future implementation
+  void _changeRepeatMode() {
+    // Cycle through: off -> one -> queue -> random
     setState(() {
-      _currentSongIndex = nextSong;
+      _repeatMode = RepeatMode.values[(_repeatMode.index + 1) % RepeatMode.values.length];
     });
-    await updateCount(_songs[_currentSongIndex]["id"]);
+    // behavior left for your implementation
   }
 
-  void _stopPlayback() {
-    audioHandler.pause();
+  void _openPlaylistView() {
+    // TODO: open playlist UI
   }
 
-  void _continuePlayback() {
-    audioHandler.play();
+  void _addToFavorites() {
+    // TODO: add to favorites
   }
 
+  void _removeFromPlaylist() {
+    // TODO: remove from playlist
+  }
+
+  void _editTrackInfo() {
+    // TODO: open edit dialog
+  }
+
+  void _openPlayerSettings() {
+    // TODO: open settings
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI BUILD - separated widgets below so you can easily extract them later
+  // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    final song = (_songs.isNotEmpty && _currentSongIndex < _songs.length) ? _songs[_currentSongIndex] : null;
+
     return Scaffold(
+      backgroundColor: background,
       appBar: AppBar(
-        title: const Text('Музыкальный плеер'),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: primary,
+        // show current track title if available, otherwise app name
+        title: Text(song?['title']?.toString() ?? 'Spotube'),
+        actions: [
+          IconButton(
+            onPressed: _openPlayerSettings,
+            icon: const Icon(Icons.settings),
+          )
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(15.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Информация о треке
-            if (_songs.isNotEmpty && widget.index < _songs.length)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Expanded(
                 child: Column(
                   children: [
-                    Text(
-                      _songs[widget.index]["title"]?.toString() ?? "Неизвестный трек",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
+                    const SizedBox(height: 8),
+                    // Cover + title/artist
+                    PlayerHeader(
+                      title: song?['title']?.toString() ?? 'Unknown Title',
+                      artist: song?['artist']?.toString() ?? 'Unknown Artist',
+                      playbackCount: _playbackCount,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _songs[widget.index]["artist"]?.toString() ?? "Неизвестный исполнитель",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+
+                    const SizedBox(height: 24),
+
+                    // Progress slider
+                    if (_totalDuration.inMilliseconds > 0) ...[
+                      PlayerProgress(
+                        current: _currentPosition,
+                        total: _totalDuration,
+                        onSeek: (pos) => audioHandler.seek(pos),
                       ),
-                      textAlign: TextAlign.center,
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Controls
+                    PlayerControls(
+                      isPlaying: _isPlaying,
+                      repeatMode: _repeatMode,
+                      onPlayPause: _togglePlayPause,
+                      onNext: () => _playNextSong(_currentSongIndex),
+                      onPrev: () => _playPreviousSong(_currentSongIndex),
+                      onShuffle: () => _playNextSong(_currentSongIndex), // for now shuffle -> next in queue
+                      onChangeRepeatMode: _changeRepeatMode,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "Трек ${_currentSongIndex + 1} из ${_songs.length}",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                    // 🔥 Отображение счетчика прослушиваний
-                    const SizedBox(height: 4),
-                    Text(
-                      "Прослушиваний: $_playbackCount",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.deepPurple[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              Container(
-                padding: const EdgeInsets.all(12),
-                child: const Text(
-                  "Загрузка информации о треке...",
-                  style: TextStyle(fontSize: 14),
-                ),
-              ),
 
-            const SizedBox(height: 30),
+                    const SizedBox(height: 8),
 
-            // 🔹 Прогресс трека
-            if (_totalDuration.inMilliseconds > 0)
-              Column(
-                children: [
-                  Slider(
-                    min: 0.0,
-                    max: _totalDuration.inMilliseconds.toDouble(),
-                    value: _currentPosition.inMilliseconds
-                        .clamp(0, _totalDuration.inMilliseconds)
-                        .toDouble(),
-                    onChanged: (value) {
-                      setState(() {
-                        _currentPosition = Duration(milliseconds: value.toInt());
-                      });
-                    },
-                    onChangeEnd: (value) {
-                      audioHandler.seek(Duration(milliseconds: value.toInt()));
-                    },
-                    activeColor: Colors.deepPurple,
-                    inactiveColor: Colors.deepPurple[100],
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(_formatDuration(_currentPosition)),
-                        Text(_formatDuration(_totalDuration)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-            const SizedBox(height: 20),
-
-            // 🔹 Кнопки управления
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // Случайный трек
-                IconButton(
-                  onPressed: () => _playRandomSong(_currentSongIndex),
-                  icon: const Icon(Icons.shuffle, size: 28),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.deepPurple[100],
-                    padding: const EdgeInsets.all(14),
-                  ),
-                ),
-
-                // Предыдущий трек
-                IconButton(
-                  onPressed: () => _playPreviousSong(_currentSongIndex),
-                  icon: const Icon(Icons.skip_previous, size: 32),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.deepPurple[200],
-                    padding: const EdgeInsets.all(14),
-                  ),
-                ),
-
-                // Стоп
-                IconButton(
-                  onPressed: _stopPlayback,
-                  icon: const Icon(Icons.stop, size: 36),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.red[400],
-                    padding: const EdgeInsets.all(18),
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-
-                // Продолжить
-                IconButton(
-                  onPressed: _continuePlayback,
-                  icon: const Icon(Icons.play_arrow, size: 36),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.green[400],
-                    padding: const EdgeInsets.all(18),
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-
-                // Следующий трек
-                IconButton(
-                  onPressed: () => _playNextSong(_currentSongIndex),
-                  icon: const Icon(Icons.skip_next, size: 32),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.deepPurple[200],
-                    padding: const EdgeInsets.all(14),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 15),
-
-            // 🔹 Текстовые кнопки
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _stopPlayback,
-                  icon: const Icon(Icons.stop, size: 18),
-                  label: const Text("Стоп", style: TextStyle(fontSize: 14)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[300],
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _continuePlayback,
-                  icon: const Icon(Icons.play_arrow, size: 18),
-                  label: const Text("Продолжить", style: TextStyle(fontSize: 14)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[400],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                ),
-              ],
-            ),
-
-            const Spacer(),
-
-            // 🔹 Статус
-            if (_error != null)
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.red[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error, color: Colors.red, size: 18),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                      ),
+                    // Action buttons row (icons only)
+                    PlayerActionsRow(
+                      onOpenPlaylist: _openPlaylistView,
+                      onFavorite: _addToFavorites,
+                      onDelete: _removeFromPlaylist,
+                      onEdit: _editTrackInfo,
                     ),
                   ],
                 ),
               ),
-          ],
+
+              // Error area
+              if (_error != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: Colors.red[100], borderRadius: BorderRadius.circular(8)),
+                  child: Text(_error!, style: const TextStyle(color: Colors.red)),
+                ),
+                const SizedBox(height: 12),
+              ]
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  String _formatDuration(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(d.inMinutes.remainder(60));
-    final seconds = twoDigits(d.inSeconds.remainder(60));
-    return "$minutes:$seconds";
+// --------------------------- Supporting Widgets --------------------------------
+
+enum RepeatMode { off, one, queue, random }
+
+class PlayerHeader extends StatelessWidget {
+  const PlayerHeader({super.key, required this.title, required this.artist, required this.playbackCount});
+
+  final String title;
+  final String artist;
+  final int playbackCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Large square cover placeholder
+        Container(
+          width: 260,
+          height: 260,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            gradient: LinearGradient(colors: [secondary.withOpacity(0.9), accent.withOpacity(0.9)]),
+          ),
+          child: const Center(child: Icon(Icons.music_note, size: 80, color: Colors.white24)),
+        ),
+        const SizedBox(height: 16),
+        Text(title, style: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Text(artist, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+        const SizedBox(height: 8),
+        Text('Plays: $playbackCount', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class PlayerProgress extends StatelessWidget {
+  const PlayerProgress({super.key, required this.current, required this.total, required this.onSeek});
+
+  final Duration current;
+  final Duration total;
+  final void Function(Duration) onSeek;
+
+  String _format(Duration d) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    return "${two(d.inMinutes.remainder(60))}:${two(d.inSeconds.remainder(60))}";
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Slider(
+          min: 0,
+          max: total.inMilliseconds.toDouble(),
+          value: current.inMilliseconds.clamp(0, total.inMilliseconds).toDouble(),
+          onChanged: (v) {},
+          onChangeEnd: (v) => onSeek(Duration(milliseconds: v.toInt())),
+          activeColor: accent,
+          inactiveColor: Colors.white10,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [Text(_format(current), style: const TextStyle(color: Colors.white60, fontSize: 12)), Text(_format(total), style: const TextStyle(color: Colors.white60, fontSize: 12))],
+          ),
+        )
+      ],
+    );
+  }
+}
+
+class PlayerControls extends StatelessWidget {
+  const PlayerControls({
+    super.key,
+    required this.isPlaying,
+    required this.repeatMode,
+    required this.onPlayPause,
+    required this.onNext,
+    required this.onPrev,
+    required this.onShuffle,
+    required this.onChangeRepeatMode,
+  });
+
+  final bool isPlaying;
+  final RepeatMode repeatMode;
+  final VoidCallback onPlayPause;
+  final VoidCallback onNext;
+  final VoidCallback onPrev;
+  final VoidCallback onShuffle;
+  final VoidCallback onChangeRepeatMode;
+
+  IconData _repeatIcon() {
+    switch (repeatMode) {
+      case RepeatMode.off:
+        return Icons.repeat;
+      case RepeatMode.one:
+        return Icons.repeat_one;
+      case RepeatMode.queue:
+        return Icons.format_list_numbered; // clearer "queue" icon
+      case RepeatMode.random:
+        return Icons.casino; // dice icon for randomness
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed: onShuffle,
+          icon: const Icon(Icons.shuffle),
+          iconSize: 26,
+          tooltip: 'Shuffle',
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: onPrev,
+          icon: const Icon(Icons.skip_previous),
+          iconSize: 36,
+        ),
+        const SizedBox(width: 8),
+        // Central play/pause button
+        ElevatedButton(
+          onPressed: onPlayPause,
+          style: ElevatedButton.styleFrom(
+            shape: const CircleBorder(),
+            padding: const EdgeInsets.all(18),
+            backgroundColor: textColor,
+            foregroundColor: background,
+            elevation: 6,
+          ),
+          child: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 30),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: onNext,
+          icon: const Icon(Icons.skip_next),
+          iconSize: 36,
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: onChangeRepeatMode,
+          icon: Icon(_repeatIcon()),
+          iconSize: 26,
+          tooltip: 'Repeat mode',
+        ),
+      ],
+    );
+  }
+}
+
+class PlayerActionsRow extends StatelessWidget {
+  const PlayerActionsRow({super.key, required this.onOpenPlaylist, required this.onFavorite, required this.onDelete, required this.onEdit});
+
+  final VoidCallback onOpenPlaylist;
+  final VoidCallback onFavorite;
+  final VoidCallback onDelete;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    // Icons-only row as requested
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          IconButton(
+            onPressed: onOpenPlaylist,
+            icon: const Icon(Icons.playlist_play),
+            tooltip: 'Playlist',
+          ),
+          IconButton(
+            onPressed: onFavorite,
+            icon: const Icon(Icons.favorite_border),
+            tooltip: 'Favorite',
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Remove',
+          ),
+          IconButton(
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit',
+          ),
+        ],
+      ),
+    );
+  }
 }
