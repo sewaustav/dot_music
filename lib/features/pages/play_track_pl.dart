@@ -115,58 +115,55 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   Future<void> _playNextSong(int index) async {
-    if (_songs.isEmpty) return;
-
-    // For now: always play next in queue (wrap-around). You will implement other modes.
-    audioHandler.stop();
-    int nextIndex = (index == _songs.length - 1) ? 0 : index + 1;
-
-    try {
-      await audioHandler.playFromFile(_songs[nextIndex]['path']);
-      if (mounted) setState(() {
-        _currentSongIndex = nextIndex;
-        _isPlaying = true;
-      });
-      await updateCount(_songs[_currentSongIndex]['id']);
-    } catch (e) {
-      logger.e('Next playback failed', error: e);
+    if (_songs.isNotEmpty) { 
+      logger.i("Current - $index"); 
+      audioHandler.stop(); 
+      if (index == _songs.length-1) { 
+        audioHandler.playFromFile(_songs[0]["path"]); 
+        setState(() {
+           _currentSongIndex = 0;
+        }); 
+      } else { 
+        audioHandler.playFromFile(_songs[index+1]["path"]); 
+        setState(() { 
+          _currentSongIndex = _currentSongIndex + 1; 
+        }); 
+      } 
+      await updateCount(_songs[_currentSongIndex]["id"]); 
     }
   }
 
   Future<void> _playPreviousSong(int index) async {
-    if (_songs.isEmpty) return;
-    audioHandler.stop();
-    int prev = (index == 0) ? _songs.length - 1 : index - 1;
-
-    try {
-      await audioHandler.playFromFile(_songs[prev]['path']);
-      if (mounted) setState(() {
-        _currentSongIndex = prev;
-        _isPlaying = true;
-      });
-      await updateCount(_songs[_currentSongIndex]['id']);
-    } catch (e) {
-      logger.e('Previous playback failed', error: e);
-    }
+    if (_songs.isNotEmpty) { 
+      logger.i("Current - ${_songs[index]["path"]}"); 
+      audioHandler.stop(); 
+      if (index == 0) { 
+        audioHandler.playFromFile(_songs[_songs.length-1]["path"]); 
+        setState(() { 
+          _currentSongIndex = _songs.length-1; 
+        }); 
+      } else { 
+        audioHandler.playFromFile(_songs[index-1]["path"]); 
+        setState(() { 
+          _currentSongIndex = _currentSongIndex-1;
+        }); 
+      } 
+      await updateCount(_songs[_currentSongIndex]["id"]); }
   }
 
   Future<void> _playRandomSong(int index) async {
-    // kept for completeness but not used as "shuffle" right now
-    if (_songs.isEmpty) return;
-    audioHandler.stop();
-    int next = Random().nextInt(_songs.length);
-    if (next == index) next = (next + 1) % _songs.length;
-
-    try {
-      await audioHandler.playFromFile(_songs[next]['path']);
-      if (mounted) setState(() {
-        _currentSongIndex = next;
-        _isPlaying = true;
-      });
-      await updateCount(_songs[_currentSongIndex]['id']);
-    } catch (e) {
-      logger.e('Random playback failed', error: e);
-    }
+    audioHandler.stop(); 
+    Random random = Random(); 
+    logger.i("Current - ${_songs[index]["path"]}"); 
+    int nextSong = random.nextInt(_songs.length); 
+    if (nextSong == index) { 
+      nextSong = (nextSong + 1) % _songs.length;
+    } 
+    audioHandler.playFromFile(_songs[nextSong]["path"]); 
+    setState(() { 
+      _currentSongIndex = nextSong; 
+    }); 
+    await updateCount(_songs[_currentSongIndex]["id"]);
   }
 
   void _togglePlayPause() {
@@ -178,7 +175,16 @@ class _PlayerPageState extends State<PlayerPage> {
     if (mounted) setState(() => _isPlaying = !_isPlaying);
   }
 
-  void _handleTrackComplete() => _playNextSong(_currentSongIndex);
+  void _handleTrackComplete() {
+    // TODO: complete modes
+    switch (_repeatMode) {
+      case RepeatMode.off: _playNextSong(_currentSongIndex); break;
+      case RepeatMode.one: _playTrack(); break;
+      case RepeatMode.queue: _playTrack(); break;
+      case RepeatMode.random: _playRandomSong(_currentSongIndex); break;
+    }
+    
+  }
 
   // ---------------------- Empty placeholder methods for future implementation
   void _changeRepeatMode() {
@@ -220,8 +226,7 @@ class _PlayerPageState extends State<PlayerPage> {
       backgroundColor: background,
       appBar: AppBar(
         backgroundColor: primary,
-        // show current track title if available, otherwise app name
-        title: Text(song?['title']?.toString() ?? 'Spotube'),
+        title: Text(song?['title']?.toString() ?? 'DotMusic'),
         actions: [
           IconButton(
             onPressed: _openPlayerSettings,
@@ -264,13 +269,12 @@ class _PlayerPageState extends State<PlayerPage> {
                       onPlayPause: _togglePlayPause,
                       onNext: () => _playNextSong(_currentSongIndex),
                       onPrev: () => _playPreviousSong(_currentSongIndex),
-                      onShuffle: () => _playNextSong(_currentSongIndex), // for now shuffle -> next in queue
+                      onShuffle: () => _playRandomSong(_currentSongIndex), // for now shuffle -> next in queue
                       onChangeRepeatMode: _changeRepeatMode,
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 40),
 
-                    // Action buttons row (icons only)
                     PlayerActionsRow(
                       onOpenPlaylist: _openPlaylistView,
                       onFavorite: _addToFavorites,
