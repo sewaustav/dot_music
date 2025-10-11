@@ -10,8 +10,6 @@ import 'package:dot_music/features/player/audio.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:sqflite/sqflite.dart';
 
-// Spotify-like player UI — updated per review
-
 class PlayerPage extends StatefulWidget {
   const PlayerPage({super.key, required this.path, required this.playlist, required this.index});
 
