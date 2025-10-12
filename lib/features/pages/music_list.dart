@@ -1,12 +1,130 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/features/music_library.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+// БЛОК ЛОГИКИ
+class SongListController {
+  final TrackLoaderService _trackLoader = TrackLoaderService();
+  final SongService _songService = SongService();
+  final PlaylistView _playlistView = PlaylistView();
+  final PlaylistService _playlistService = PlaylistService();
+
+  List<SongModel> _songs = [];
+  List<SongModel> get songs => _songs;
+  
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
+  
+  int _trackCount = 0;
+  int get trackCount => _trackCount;
+
+  Future<void> initialize() async {
+    try {
+      await _trackLoader.initializePlugin();
+      logger.i('TrackLoaderService инициализирован');
+    } catch (e, st) {
+      logger.e('Ошибка инициализации TrackLoaderService', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  Future<bool> checkAndRequestPermissions() async {
+    try {
+      logger.i('Проверка разрешений...');
+      
+      final bool isAndroid13OrHigher = await _isAndroid13OrHigher();
+      final Permission permission = isAndroid13OrHigher ? Permission.audio : Permission.storage;
+      
+      final status = await permission.status;
+      logger.i('Статус разрешения: $status');
+      
+      if (!status.isGranted) {
+        final result = await permission.request();
+        logger.i('Результат запроса: $result');
+        return result.isGranted;
+      }
+      
+      return true;
+    } catch (e, st) {
+      logger.e('Ошибка при запросе разрешений', error: e, stackTrace: st);
+      return false;
+    }
+  }
+
+  Future<void> loadSongs() async {
+    _setLoading(true);
+    
+    try {
+      final loadedSongs = await _trackLoader.loadSongs();
+      _songs = loadedSongs.where(_isValidSong).toList();
+      
+      await _trackLoader.addMissingSongsToDb(_songService, _songs);
+      
+      final count = await _playlistView.getCountTrack();
+      _trackCount = count;
+      
+      logger.i('✅ Успешно загружено ${_songs.length} треков');
+    } catch (e, st) {
+      logger.e('Ошибка загрузки треков', error: e, stackTrace: st);
+      rethrow;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> addSongToPlaylist(String playlistName, SongModel song) async {
+    try {
+      final songExists = await _songService.getSongByPath(song.data);
+      
+      if (!songExists) {
+        logger.i('Трек не найден в БД, добавляем...');
+        await _songService.addSongToDb(song.data);
+      }
+      
+      await _playlistService.addToPlaylist(playlistName, song.data);
+      logger.i('Трек "${song.title}" добавлен в плейлист "$playlistName"');
+    } catch (e, st) {
+      logger.e('Ошибка добавления в плейлист', error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  Future<bool> checkFileAccess(SongModel song) async {
+    try {
+      final file = File(song.data);
+      return await file.exists();
+    } catch (e) {
+      logger.e('Ошибка проверки файла: ${song.title}', error: e);
+      return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getPlaylists() async {
+    return await _playlistView.getAllPlaylists();
+  }
+
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+  }
+
+  bool _isValidSong(SongModel song) {
+    return song.data != null && 
+           song.data.isNotEmpty && 
+           song.title != null && 
+           song.title.isNotEmpty;
+  }
+
+  Future<bool> _isAndroid13OrHigher() async {
+    return false; // Для Android 11
+  }
+}
+
+// БЛОК UI
 class SongListWidget extends StatefulWidget {
   const SongListWidget({super.key});
 
@@ -15,194 +133,91 @@ class SongListWidget extends StatefulWidget {
 }
 
 class _SongListWidgetState extends State<SongListWidget> {
-  final OnAudioQuery _audioQuery = OnAudioQuery();
-  List<SongModel> songs = [];
-  bool isLoading = false;
-  int countTracks = 0;
-  int _offset = 0;
-  final int _limit = 50; 
-  bool _hasMoreSongs = true;
+  final SongListController _controller = SongListController();
   final ScrollController _scrollController = ScrollController();
-  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
     logger.i('Инициализация SongListWidget');
-    _checkPermissionAndLoad();
-    _scrollController.addListener(_onScroll);
+    _initialize();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    _debounce?.cancel();
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.extentAfter < 200 &&
-        _hasMoreSongs &&
-        !isLoading) {
-      if (_debounce?.isActive ?? false) _debounce!.cancel();
-      _debounce = Timer(const Duration(milliseconds: 500), () {
-        logger.i('Доскроллили до конца, подгружаем треки...');
-        _loadSongs(loadMore: true);
-      });
+  Future<void> _initialize() async {
+    try {
+      await _controller.initialize();
+      await _checkPermissionsAndLoad();
+    } catch (e, st) {
+      logger.e('Ошибка инициализации', error: e, stackTrace: st);
+      _showErrorSnackBar('Ошибка инициализации: $e');
     }
   }
 
-  Future<void> _checkPermissionAndLoad() async {
-    logger.i('Проверка разрешений...');
-    PermissionStatus permissionStatus;
-    if (await _isAndroid13OrHigher()) {
-      permissionStatus = await Permission.audio.status;
-      logger.i('Статус разрешения audio: $permissionStatus');
-      if (!permissionStatus.isGranted) {
-        permissionStatus = await Permission.audio.request();
-        logger.i('Результат запроса audio: $permissionStatus');
-      }
-    } else {
-      permissionStatus = await Permission.storage.status;
-      logger.i('Статус разрешения storage: $permissionStatus');
-      if (!permissionStatus.isGranted) {
-        permissionStatus = await Permission.storage.request();
-        logger.i('Результат запроса storage: $permissionStatus');
-      }
-    }
-
-    if (permissionStatus.isGranted) {
-      logger.i('Разрешение получено, загружаем треки...');
-      setState(() {
-        isLoading = true;
-      });
+  Future<void> _checkPermissionsAndLoad() async {
+    final hasPermission = await _controller.checkAndRequestPermissions();
+    
+    if (hasPermission) {
       await _loadSongs();
     } else {
       logger.w('Разрешение отклонено');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Нужно разрешение на доступ к музыке'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-      setState(() {
-        isLoading = false;
-        songs = [];
-      });
+      _showErrorSnackBar('Нужно разрешение на доступ к музыке');
+      setState(() {});
     }
   }
 
-  Future<bool> _isAndroid13OrHigher() async {
-    return false; // Для Android 11
-  }
-
-  Future<void> _loadSongs({bool loadMore = false}) async {
-    if (!_hasMoreSongs && loadMore) {
-      logger.i('Больше треков нет');
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
+  Future<void> _loadSongs() async {
     try {
-      final ss = SongService();
-      final pv = PlaylistView();
+      await _controller.loadSongs();
+      setState(() {});
+    } catch (e) {
+      _showErrorSnackBar('Ошибка загрузки треков: $e');
+      setState(() {});
+    }
+  }
 
-      logger.i('Запрос треков, offset: $_offset, limit: $_limit');
-      List<SongModel> fetchedSongs = await _audioQuery.querySongs(
-        sortType: SongSortType.TITLE,
-        orderType: OrderType.ASC_OR_SMALLER,
-        uriType: UriType.EXTERNAL,
-        ignoreCase: true,
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
+        ),
       );
-
-      fetchedSongs = fetchedSongs
-          .where((song) =>
-              song.data != null &&
-              song.data.isNotEmpty &&
-              song.title != null &&
-              song.title.isNotEmpty)
-          .toList();
-      logger.i('Отфильтровано ${fetchedSongs.length} треков');
-      for (var song in fetchedSongs) {
-        logger.i('Трек: ${song.title}, путь: ${song.data}');
-      }
-
-      final start = _offset;
-      final end = (_offset + _limit).clamp(0, fetchedSongs.length);
-      final newSongs = fetchedSongs.sublist(start, end);
-
-      logger.i('Загружено ${newSongs.length} новых треков, всего: ${songs.length + newSongs.length}');
-
-      if (newSongs.length < _limit) {
-        _hasMoreSongs = false;
-        logger.i('Все треки загружены');
-      }
-
-      setState(() {
-        if (loadMore) {
-          songs.addAll(newSongs);
-        } else {
-          songs = newSongs;
-        }
-        _offset += newSongs.length;
-        isLoading = false;
-      });
-
-      int count = await pv.getCountTrack();
-      setState(() {
-        countTracks = count;
-      });
-
-      _addMissingSongsToDb(ss, newSongs);
-    } catch (e, stackTrace) {
-      logger.e('Ошибка при загрузке треков', error: e, stackTrace: stackTrace);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка загрузки треков: $e'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-      setState(() {
-        isLoading = false;
-      });
     }
   }
 
-  Future<void> _addMissingSongsToDb(SongService ss, List<SongModel> songs) async {
-    int addedCount = 0;
-
-    for (var song in songs) {
-      try {
-        bool songExists = await ss.getSongByPath(song.data);
-        if (!songExists) {
-          await ss.addSongToDb(song.data);
-          addedCount++;
-          logger.i('Добавлен трек в БД: ${song.title}');
-        }
-      } catch (e, stackTrace) {
-        logger.e('Ошибка при добавлении трека ${song.title}', error: e, stackTrace: stackTrace);
-      }
+  void _showSuccessSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
+  }
 
-    if (addedCount > 0) {
-      logger.i('Добавлено новых треков в БД: $addedCount');
+  Future<void> _playSong(SongModel song, int index) async {
+    final hasAccess = await _controller.checkFileAccess(song);
+    
+    if (hasAccess) {
+      logger.i('Воспроизведение трека: ${song.title}');
+      context.push("/track", extra: {"songData": song.data, "index": index});
     } else {
-      logger.i('Все треки уже есть в БД');
+      _showErrorSnackBar('Файл не найден: ${song.title}');
     }
   }
 
-  Future<String?> _showPlaylistSelectionDialog(BuildContext context) async {
-    final pv = PlaylistView();
-    final List<Map<String, dynamic>> playlists = await pv.getAllPlaylists();
-
-    return showDialog<String>(
+  Future<void> _showPlaylistSelectionDialog(SongModel song) async {
+    final playlists = await _controller.getPlaylists();
+    
+    final selectedPlaylist = await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
@@ -216,9 +231,7 @@ class _SongListWidgetState extends State<SongListWidget> {
                 final playlist = playlists[index];
                 return ListTile(
                   title: Text(playlist['name'] ?? 'Без названия'),
-                  onTap: () {
-                    Navigator.of(context).pop(playlist['name']);
-                  },
+                  onTap: () => Navigator.of(context).pop(playlist['name']),
                 );
               },
             ),
@@ -226,36 +239,77 @@ class _SongListWidgetState extends State<SongListWidget> {
         );
       },
     );
-  }
 
-  Future<void> _addToPlaylist(String playlistName, String songPath) async {
-    final ss = SongService();
-    final ps = PlaylistService();
-
-    try {
-      bool songExists = await ss.getSongByPath(songPath);
-      if (songExists) {
-        logger.i('Трек уже в базе, добавляем в плейлист "$playlistName"');
-        await ps.addToPlaylist(playlistName, songPath);
-        logger.i('Трек добавлен в плейлист "$playlistName"');
-      } else {
-        logger.w('Трек не в базе, добавляем в базу');
-        await ss.addSongToDb(songPath);
-        logger.i('Трек добавлен в базу');
-        await ps.addToPlaylist(playlistName, songPath);
-        logger.i('Трек добавлен в плейлист "$playlistName"');
-      }
-    } catch (e, stackTrace) {
-      logger.e('Ошибка при добавлении в плейлист', error: e, stackTrace: stackTrace);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Ошибка добавления в плейлист: $e'),
-            duration: const Duration(seconds: 3),
-          ),
-        );
+    if (selectedPlaylist != null && mounted) {
+      try {
+        await _controller.addSongToPlaylist(selectedPlaylist, song);
+        _showSuccessSnackBar('Трек добавлен в "$selectedPlaylist"');
+      } catch (e) {
+        _showErrorSnackBar('Ошибка добавления в плейлист: $e');
       }
     }
+  }
+
+  Widget _buildSongTile(SongModel song, int index) {
+    return ListTile(
+      title: Text(song.title ?? 'Без названия'),
+      subtitle: Text(song.artist ?? 'Неизвестный артист'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.play_arrow),
+            onPressed: () => _playSong(song, index),
+            tooltip: 'Воспроизвести',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'add_to_playlist':
+                  _showPlaylistSelectionDialog(song);
+                  break;
+                case 'delete':
+                  logger.i('Удаление трека (заглушка): ${song.title}');
+                  break;
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'add_to_playlist',
+                child: Text('Добавить в плейлист'),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Text('Удалить'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_controller.isLoading && _controller.songs.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_controller.songs.isEmpty) {
+      return const Center(
+        child: Text(
+          'Треки не найдены',
+          style: TextStyle(fontSize: 16),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: _controller.songs.length,
+      itemBuilder: (context, index) {
+        return _buildSongTile(_controller.songs[index], index);
+      },
+    );
   }
 
   @override
@@ -263,91 +317,17 @@ class _SongListWidgetState extends State<SongListWidget> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Музыкальные треки'),
-      ),
-      body: songs.isEmpty && !isLoading
-          ? const Center(child: Text('Треки не найдены'))
-          : ListView.builder(
-              controller: _scrollController,
-              itemCount: songs.length + (isLoading || _hasMoreSongs ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == songs.length && (isLoading || _hasMoreSongs)) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final song = songs[index];
-                return ListTile(
-                  title: Text(song.title ?? 'Без названия'),
-                  subtitle: Text(song.artist ?? 'Неизвестный артист'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.play_arrow),
-                        onPressed: () async {
-                          logger.i('Проверка доступа к файлу: ${song.data}');
-                          try {
-                            final file = File(song.data);
-                            if (await file.exists()) {
-                              logger.i('Файл существует: ${song.title}, путь: ${song.data}');
-                              context.push("/track", extra: {"songData": song.data, "index": index});
-                            } else {
-                              logger.w('Файл не существует: ${song.data}');
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Файл не найден: ${song.title}'),
-                                    duration: const Duration(seconds: 3),
-                                  ),
-                                );
-                              }
-                            }
-                          } catch (e, stackTrace) {
-                            logger.e('Ошибка проверки файла ${song.title}', error: e, stackTrace: stackTrace);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Ошибка доступа: $e'),
-                                  duration: const Duration(seconds: 3),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                      PopupMenuButton<String>(
-                        onSelected: (value) async {
-                          if (value == 'add_to_playlist') {
-                            final selectedPlaylist = await _showPlaylistSelectionDialog(context);
-                            if (selectedPlaylist != null) {
-                              await _addToPlaylist(selectedPlaylist, song.data);
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Трек добавлен в "$selectedPlaylist"'),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            }
-                          } else if (value == 'delete') {
-                            logger.i('Удаление трека (заглушка): ${song.title}');
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'add_to_playlist',
-                            child: Text('Добавить в плейлист'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Удалить'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
+        actions: [
+          if (_controller.trackCount > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Center(
+                child: Text('Всего: ${_controller.trackCount}'),
+              ),
             ),
+        ],
+      ),
+      body: _buildContent(),
     );
   }
 }

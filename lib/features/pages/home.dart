@@ -2,11 +2,13 @@ import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:dot_music/design/colors.dart';
+import 'package:dot_music/features/music_library.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 
-import 'package:permission_handler/permission_handler.dart';
+import 'package:on_audio_query/on_audio_query.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,41 +21,40 @@ class _HomePageState extends State<HomePage> {
   final dh = DatabaseHelper();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _trackLoader = TrackLoaderService(); 
+
+  List<SongModel> songs = [];
   bool _showForm = false;
+  bool _isLoading = false;
 
-  Future<void> _checkPermissionAndLoad() async {
-    logger.i('Проверка разрешений...');
-    PermissionStatus permissionStatus;
-    if (await _isAndroid13OrHigher()) {
-      permissionStatus = await Permission.audio.status;
-      logger.i('Статус разрешения audio: $permissionStatus');
-      if (!permissionStatus.isGranted) {
-        permissionStatus = await Permission.audio.request();
-        logger.i('Результат запроса audio: $permissionStatus');
-      }
-    } else {
-      permissionStatus = await Permission.storage.status;
-      logger.i('Статус разрешения storage: $permissionStatus');
-      if (!permissionStatus.isGranted) {
-        permissionStatus = await Permission.storage.request();
-        logger.i('Результат запроса storage: $permissionStatus');
-      }
+  @override
+  void initState() {
+    super.initState();
+    _initTracks();
+  }
+
+  Future<void> _initTracks() async {
+    try {
+      await _trackLoader.initializePlugin();
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadSongs());
+    } catch (e, st) {
+      logger.e('Ошибка инициализации треков', error: e, stackTrace: st);
     }
+  }
 
-    if (permissionStatus.isGranted) {
-      logger.i('Разрешение получено, загружаем треки...');
-      // await _loadSongs();
-    } else {
-      logger.w('Разрешение отклонено');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Нужно разрешение на доступ к музыке'),
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-      
+  Future<void> _loadSongs() async {
+    setState(() => _isLoading = true);
+    try {
+      final loadedSongs = await _trackLoader.loadSongs();
+      if (!mounted) return;
+
+      setState(() => songs = loadedSongs);
+
+      unawaited(_trackLoader.addMissingSongsToDb(SongService(), loadedSongs));
+    } catch (e, st) {
+      logger.e('Ошибка при загрузке треков', error: e, stackTrace: st);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -61,7 +62,6 @@ class _HomePageState extends State<HomePage> {
     if (_formKey.currentState!.validate()) {
       final ps = PlaylistService();
       await ps.createPlaylist(_nameController.text);
-
       setState(() {
         _showForm = false;
         _nameController.clear();
@@ -70,29 +70,30 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       body: Stack(
         children: [
-          // Основной контент
           SafeArea(
             child: HomePageUI(
               showForm: _showForm,
               nameController: _nameController,
               formKey: _formKey,
               onCreatePlaylist: _createPlaylist,
-              onToggleForm: () {
-                setState(() => _showForm = !_showForm);
-              },
+              onToggleForm: () => setState(() => _showForm = !_showForm),
               onGoToTracks: () => context.push("/list"),
               onGoToPlaylists: () => context.push("/listpl"),
               onGoToStatistic: () => context.push("/statistic"),
               onDebug: () async => await dh.getAllTables(),
             ),
           ),
-
-          // Оверлей с формой поверх всего
           if (_showForm)
             _PlaylistFormOverlay(
               formKey: _formKey,
@@ -110,6 +111,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
 
 /// ОВЕРЛЕЙ ФОРМЫ СОЗДАНИЯ ПЛЕЙЛИСТА
 class _PlaylistFormOverlay extends StatefulWidget {

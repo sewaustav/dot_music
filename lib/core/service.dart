@@ -1,9 +1,7 @@
-import 'package:dot_music/core/config.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 final OnAudioQuery _audioQuery = OnAudioQuery();
 
-/// Получить инфу о треке по пути к файлу
 Future<Map<String, dynamic>?> getTrackInfoByPath(String path) async {
   // Убедимся, что есть разрешения
   await _audioQuery.permissionsRequest();
