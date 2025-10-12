@@ -20,7 +20,7 @@ class _SongListWidgetState extends State<SongListWidget> {
   bool isLoading = false;
   int countTracks = 0;
   int _offset = 0;
-  final int _limit = 300; // Уменьшаем до 10 для плавности
+  final int _limit = 50; 
   bool _hasMoreSongs = true;
   final ScrollController _scrollController = ScrollController();
   Timer? _debounce;

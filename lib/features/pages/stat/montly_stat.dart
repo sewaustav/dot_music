@@ -1,5 +1,7 @@
 import 'package:dot_music/core/db/stat_service.dart';
+import 'package:dot_music/features/pages/stat/top_stat.dart';
 import 'package:flutter/material.dart';
+import 'package:dot_music/design/colors.dart';
 
 class MonthlyStatPage extends StatefulWidget {
   final int month;
@@ -24,34 +26,34 @@ class _MonthlyStatPageState extends State<MonthlyStatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('📅 Топ за ${widget.month}.${DateTime.now().year}')),
+      backgroundColor: background,
+      appBar: AppBar(
+        title: Text('📅 Top for ${widget.month}.${DateTime.now().year}',
+          style: TextStyle(
+            color: textColor
+          ),
+        ),
+        backgroundColor: primary,
+        centerTitle: true,
+      ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _futureMonthly,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(color: accent));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Ошибка: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final tracks = snapshot.data ?? [];
           if (tracks.isEmpty) {
-            return const Center(child: Text('Нет данных за этот месяц'));
+            return const Center(child: Text('No data for this month'));
           }
 
-          return ListView.separated(
-            itemCount: tracks.length,
-            separatorBuilder: (_, __) => const Divider(),
-            itemBuilder: (context, index) {
-              final track = tracks[index];
-              return ListTile(
-                leading: Text('#${index + 1}'),
-                title: Text(track['title']),
-                subtitle: Text(track['artist'] ?? 'Неизвестный артист'),
-                trailing: Text('${track['playback_count']} ▶️'),
-              );
-            },
+          return StatList(
+            tracks: tracks,
+            countKey: 'playback_count',
           );
         },
       ),

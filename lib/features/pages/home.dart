@@ -1,9 +1,12 @@
+import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+
+import 'package:permission_handler/permission_handler.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +20,42 @@ class _HomePageState extends State<HomePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   bool _showForm = false;
+
+  Future<void> _checkPermissionAndLoad() async {
+    logger.i('Проверка разрешений...');
+    PermissionStatus permissionStatus;
+    if (await _isAndroid13OrHigher()) {
+      permissionStatus = await Permission.audio.status;
+      logger.i('Статус разрешения audio: $permissionStatus');
+      if (!permissionStatus.isGranted) {
+        permissionStatus = await Permission.audio.request();
+        logger.i('Результат запроса audio: $permissionStatus');
+      }
+    } else {
+      permissionStatus = await Permission.storage.status;
+      logger.i('Статус разрешения storage: $permissionStatus');
+      if (!permissionStatus.isGranted) {
+        permissionStatus = await Permission.storage.request();
+        logger.i('Результат запроса storage: $permissionStatus');
+      }
+    }
+
+    if (permissionStatus.isGranted) {
+      logger.i('Разрешение получено, загружаем треки...');
+      // await _loadSongs();
+    } else {
+      logger.w('Разрешение отклонено');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Нужно разрешение на доступ к музыке'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      
+    }
+  }
 
   Future<void> _createPlaylist() async {
     if (_formKey.currentState!.validate()) {
