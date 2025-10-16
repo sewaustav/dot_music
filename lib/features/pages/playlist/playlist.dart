@@ -51,6 +51,107 @@ class _PlaylistPageState extends State<PlaylistPage> {
     logger.i("Removed track from playlist: ${song['title']}");
   }
 
+  Future<void> _editTrackTitle(Map<String, dynamic> song) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String newTitle = song['title']?.toString() ?? '';
+        
+        return Dialog(
+          backgroundColor: primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Edit song title',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: TextEditingController(text: newTitle),
+                  onChanged: (value) {
+                    newTitle = value;
+                  },
+                  style: TextStyle(color: textColor),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: background.withOpacity(0.8),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    hintText: 'Enter new title',
+                    hintStyle: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text(
+                        'Cansel',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        _updateTrackTitle(song, newTitle);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: accent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Save',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateTrackTitle(Map<String, dynamic> song, String newTitle) async {
+    logger.i("Updating track title: ${song['title']} -> $newTitle");
+    await SongService().changeSongTitle(song["path"], newTitle);
+    
+    setState(() {
+      final index = _songs.indexWhere((s) => s['path'] == song['path']);
+      if (index != -1) {
+        _songs[index]['title'] = newTitle;
+      }
+    });
+    
+    logger.i("Track title updated successfully");
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,6 +181,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   artist: song['artist']?.toString() ?? 'Unknown Artist',
                   onPlay: () => _playSong(song, index),
                   onDelete: () => _removeFromPlaylist(song),
+                  onEdit: () => _editTrackTitle(song),
                 );
               },
             ),
@@ -96,12 +198,14 @@ class _SongCard extends StatelessWidget {
     required this.artist,
     required this.onPlay,
     required this.onDelete,
+    required this.onEdit,
   });
 
   final String title;
   final String artist;
   final VoidCallback onPlay;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -175,6 +279,10 @@ class _SongCard extends StatelessWidget {
             tooltip: 'Remove from playlist',
             onPressed: onDelete,
           ),
+          IconButton(
+            icon: Icon(Icons.edit, color: secondary), 
+            onPressed: onEdit, 
+          )
         ],
       ),
     );

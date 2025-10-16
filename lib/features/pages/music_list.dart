@@ -209,6 +209,7 @@ class _SongListWidgetState extends State<SongListWidget> {
     if (hasAccess) {
       logger.i('Воспроизведение трека: ${song.title}');
       context.push("/track", extra: {"songData": song.data, "index": index});
+      // context.push("/player", extra: {"songData": song.data, "index": index, "playlist": 0});
     } else {
       _showErrorSnackBar('Файл не найден: ${song.title}');
     }

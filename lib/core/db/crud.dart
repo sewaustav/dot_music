@@ -116,6 +116,7 @@ class PlaylistView {
 class SongService {
 
   Future<Database> get _db async => await DatabaseHelper().db;
+  final DbHelper _dbHelper = DbHelper();
 
   Future<int> addSongToDb(String path) async {
     final db = await _db;
@@ -123,7 +124,7 @@ class SongService {
     final songInfo = await getTrackInfoByPath(path);
 
     if (songInfo != null) {
-      return db.rawInsert(
+      return await db.rawInsert(
         'INSERT INTO tracks (title, artist, path, playback_count) VALUES (?, ?, ?, ?)',
         [songInfo['title'], songInfo['artist'], path, 0]
       );
@@ -141,6 +142,22 @@ class SongService {
     );
 
     return result.first['track_exists'] == 1;
+  }
+
+  Future<void> changeSongTitle(String path, String newTitle) async {
+    final db = await _db;
+
+    int trackId = await _dbHelper.getTrackIdByPath(path);
+
+    await db.rawUpdate(
+      """
+      UPDATE tracks
+      SET title = ?
+      WHERE id = ?
+      """,
+      [newTitle, trackId]
+    );
+    
   }
 
 }
