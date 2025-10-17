@@ -1,6 +1,6 @@
 import 'package:dot_music/features/pages/music_list.dart';
 import 'package:dot_music/features/pages/play_track.dart';
-import 'package:dot_music/features/pages/play_track_pl.dart';
+import 'package:dot_music/features/pages/player/play_track_pl.dart';
 import 'package:dot_music/features/pages/playlist/playlist.dart';
 import 'package:dot_music/features/pages/playlist/playlist_list.dart';
 import 'package:dot_music/features/pages/stat/annual_stat.dart';
