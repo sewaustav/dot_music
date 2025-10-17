@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
+import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
@@ -29,6 +30,7 @@ class PlayerLogic {
   RepeatMode repeatMode = RepeatMode.off;
 
   final PlaylistView pv = PlaylistView();
+  final DbHelper _dbHelper = DbHelper();
   Database? _db;
 
   // OnAudioQuery for "old" mode
@@ -156,10 +158,14 @@ class PlayerLogic {
       isPlaying = true;
       refreshUI();
 
-      final songId = songs[currentSongIndex]['id'];
-      if (songId != null) {
-        await updateCount(songId);
+      int songId = songs[currentSongIndex]['id'];
+      if (playlist == 0) {
+        songId = await _dbHelper.getTrackIdByPath(songs[currentSongIndex]["path"]);
       }
+      logger.i("Info about song - ${songs[currentSongIndex]}");
+      
+      await updateCount(songId);
+      
     } catch (e, st) {
       logger.e('Play failed', error: e, stackTrace: st);
       error = 'Playback error: $e';
@@ -171,10 +177,12 @@ class PlayerLogic {
     try {
       final database = await db;
       final stat = StatRepository(database);
+      logger.i("Track id -- $trackId");
       await stat.registerPlayback(trackId);
       int newPlaybackCount = await stat.getPlaybackCount(trackId);
       playbackCount = newPlaybackCount;
       refreshUI();
+      
     } catch (e, st) {
       logger.e('Update count failed', error: e, stackTrace: st);
     }
