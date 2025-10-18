@@ -5,6 +5,8 @@ import 'package:on_audio_query/on_audio_query.dart';
 class TrackLoaderService {
   final OnAudioQuery _audioQuery = OnAudioQuery();
   bool _pluginInitialized = false;
+  bool isAddedBd = false;
+  String error = "";
 
   Future<void> initializePlugin() async {
     try {
@@ -13,6 +15,7 @@ class TrackLoaderService {
       logger.i('Плагин OnAudioQuery успешно инициализирован');
     } catch (e, st) {
       logger.e('Ошибка инициализации плагина', error: e, stackTrace: st);
+      error = e.toString();
       rethrow;
     }
   }
@@ -26,6 +29,7 @@ class TrackLoaderService {
     final permissionGranted = await _ensurePermissions();
     if (!permissionGranted) {
       logger.e('🚫 Permission denied');
+      error = '🚫 Permission denied';
       return [];
     }
 
@@ -51,13 +55,14 @@ class TrackLoaderService {
         if (!exists) {
           await ss.addSongToDb(song.data);
           addedCount++;
-          logger.i('Добавлен трек в БД: ${song.title}');
+          // logger.i('Добавлен трек в БД: ${song.title}');
         }
       } catch (e, st) {
+        error = e.toString();
         logger.e('Ошибка при добавлении трека ${song.title}', error: e, stackTrace: st);
       }
     }
-
+    isAddedBd = true;
     if (addedCount > 0) {
       logger.i('Добавлено новых треков в БД: $addedCount');
     } else {
@@ -72,6 +77,7 @@ class TrackLoaderService {
         final granted = await _audioQuery.permissionsRequest();
         if (!granted) {
           logger.w('Пользователь отклонил разрешение');
+          error = 'Пользователь отклонил разрешение';
           return false;
         }
 
@@ -81,6 +87,7 @@ class TrackLoaderService {
       return status;
     } catch (e, st) {
       logger.e('Ошибка при запросе разрешений', error: e, stackTrace: st);
+      error = e.toString();
       return false;
     }
   }

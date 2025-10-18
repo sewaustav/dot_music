@@ -21,11 +21,13 @@ class _HomePageState extends State<HomePage> {
   final dh = DatabaseHelper();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _trackLoader = TrackLoaderService(); 
+  final _trackLoader = TrackLoaderService();
 
   List<SongModel> songs = [];
   bool _showForm = false;
   bool _isLoading = false;
+  String _loadingText = "Loading tracks...";
+  String? _errorText;
 
   @override
   void initState() {
@@ -34,25 +36,33 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _initTracks() async {
-    try {
-      await _trackLoader.initializePlugin();
-      WidgetsBinding.instance.addPostFrameCallback((_) => _loadSongs());
-    } catch (e, st) {
-      logger.e('Ошибка инициализации треков', error: e, stackTrace: st);
-    }
-  }
+    setState(() {
+      _isLoading = true;
+      _loadingText = "Инициализация плагина...";
+      _errorText = null;
+    });
 
-  Future<void> _loadSongs() async {
-    setState(() => _isLoading = true);
     try {
+      // 1️⃣ Инициализация плагина с настоящим запросом разрешений
+      await _trackLoader.initializePlugin();
+
+      // 2️⃣ Загружаем треки
       final loadedSongs = await _trackLoader.loadSongs();
       if (!mounted) return;
 
       setState(() => songs = loadedSongs);
 
-      unawaited(_trackLoader.addMissingSongsToDb(SongService(), loadedSongs));
+      // 3️⃣ Добавляем треки в БД безопасно
+      setState(() => _loadingText = "Добавляем треки в базу...");
+      await _trackLoader.addMissingSongsToDb(SongService(), loadedSongs);
+
+      // Проверяем, есть ли ошибки
+      if (_trackLoader.error.isNotEmpty) {
+        setState(() => _errorText = _trackLoader.error);
+      }
     } catch (e, st) {
-      logger.e('Ошибка при загрузке треков', error: e, stackTrace: st);
+      logger.e('Ошибка загрузки треков', error: e, stackTrace: st);
+      setState(() => _errorText = e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -67,12 +77,6 @@ class _HomePageState extends State<HomePage> {
         _nameController.clear();
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
   }
 
   @override
@@ -94,6 +98,8 @@ class _HomePageState extends State<HomePage> {
               onDebug: () async => await dh.getAllTables(),
             ),
           ),
+
+          // Форма плейлиста
           if (_showForm)
             _PlaylistFormOverlay(
               formKey: _formKey,
@@ -106,11 +112,54 @@ class _HomePageState extends State<HomePage> {
                 });
               },
             ),
+
+          // 🔥 Оверлей загрузки или ошибки
+          if (_isLoading || _errorText != null)
+            Container(
+              color: Colors.black.withOpacity(0.8),
+              child: Center(
+                child: _errorText != null
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              color: Colors.redAccent, size: 48),
+                          const SizedBox(height: 16),
+                          Text(
+                            _errorText!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.redAccent,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
+                              color: Colors.white),
+                          const SizedBox(height: 24),
+                          Text(
+                            _loadingText,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
         ],
       ),
     );
   }
 }
+
 
 
 /// ОВЕРЛЕЙ ФОРМЫ СОЗДАНИЯ ПЛЕЙЛИСТА
