@@ -33,7 +33,6 @@ class PlayerLogic {
   final DbHelper _dbHelper = DbHelper();
   Database? _db;
 
-  // OnAudioQuery for "old" mode
   final OnAudioQuery _audioQuery = OnAudioQuery();
 
   PlayerLogic({
@@ -60,17 +59,21 @@ class PlayerLogic {
       }
 
       audioHandler.onTrackComplete = _handleTrackComplete;
+      
+      _setupAudioListeners();
+      
       await _playTrack();
       if (songs.isNotEmpty && songs[currentSongIndex]['id'] != null) {
         await _loadPlaybackCount(songs[currentSongIndex]["id"]);
       }
+      
+      refreshUI();
+      
     } catch (e, st) {
       logger.e('Initialize failed', error: e, stackTrace: st);
       error = 'Initialize error: $e';
       refreshUI();
     }
-
-    _setupAudioListeners();
   }
 
   void _setupAudioListeners() {
@@ -202,6 +205,8 @@ class PlayerLogic {
     }
 
     currentSongIndex = nextIndex;
+    isPlaying = true;
+    refreshUI();
     await _playTrack();
   }
 
@@ -219,6 +224,8 @@ class PlayerLogic {
     }
 
     currentSongIndex = prevIndex;
+    isPlaying = true;
+    refreshUI();
     await _playTrack();
   }
 
@@ -235,16 +242,19 @@ class PlayerLogic {
     }
 
     currentSongIndex = nextSong;
+    isPlaying = true;
+    refreshUI();
     await _playTrack();
   }
 
   void togglePlayPause() {
     if (isPlaying) {
       audioHandler.pause();
+      isPlaying = false;
     } else {
       audioHandler.play();
+      isPlaying = true;
     }
-    isPlaying = !isPlaying;
     refreshUI();
   }
 

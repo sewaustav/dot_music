@@ -26,6 +26,7 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void initState() {
     super.initState();
+    _refreshUI();
     _logic = PlayerLogic(
       refreshUI: _refreshUI,
       initialIndex: widget.index,
