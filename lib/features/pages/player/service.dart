@@ -15,6 +15,7 @@ import 'package:sqflite/sqflite.dart';
 
 class PlayerLogic {
   final VoidCallback refreshUI;
+  final refreshBtn;
   final int initialIndex;
   final int playlist;
   final String? initialPath; 
@@ -39,6 +40,7 @@ class PlayerLogic {
     required this.refreshUI,
     required this.initialIndex,
     required this.playlist,
+    required this.refreshBtn,
     this.initialPath,
   });
 
@@ -86,6 +88,8 @@ class PlayerLogic {
       totalDuration = dur ?? Duration.zero;
       refreshUI();
     });
+
+    
   }
 
   Future<List<Map<String, dynamic>>> _getSongs() async {
@@ -146,6 +150,7 @@ class PlayerLogic {
   }
 
   Future<void> _playTrack() async {
+    logger.i('playTrack start, setting isPlaying=true (currentIndex=$currentSongIndex)');
     if (songs.isEmpty) {
       error = 'No songs available';
       refreshUI();
@@ -159,7 +164,9 @@ class PlayerLogic {
       }
       await audioHandler.playFromFile(path);
       isPlaying = true;
-      refreshUI();
+      refreshBtn(isPlaying);
+      
+      Future.microtask(refreshUI);
 
       int songId = songs[currentSongIndex]['id'];
       if (playlist == 0) {
@@ -206,6 +213,7 @@ class PlayerLogic {
 
     currentSongIndex = nextIndex;
     isPlaying = true;
+    refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
   }
@@ -225,6 +233,7 @@ class PlayerLogic {
 
     currentSongIndex = prevIndex;
     isPlaying = true;
+    refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
   }
@@ -243,6 +252,7 @@ class PlayerLogic {
 
     currentSongIndex = nextSong;
     isPlaying = true;
+    refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
   }
@@ -255,7 +265,8 @@ class PlayerLogic {
       audioHandler.play();
       isPlaying = true;
     }
-    refreshUI();
+    logger.i('togglePlayPause after: isPlaying=$isPlaying');
+    refreshBtn(isPlaying);
   }
 
   void _handleTrackComplete() {

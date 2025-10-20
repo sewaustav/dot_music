@@ -22,6 +22,7 @@ class PlayerPage extends StatefulWidget {
 
 class _PlayerPageState extends State<PlayerPage> {
   late PlayerLogic _logic;
+  bool isPlaying = true;
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _PlayerPageState extends State<PlayerPage> {
       refreshUI: _refreshUI,
       initialIndex: widget.index,
       playlist: widget.playlist,
+      refreshBtn: refreshBtn
     );
     _logic.initialize();
   }
@@ -39,6 +41,12 @@ class _PlayerPageState extends State<PlayerPage> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void refreshBtn(bool cond) {
+    /*setState(() {
+      isPlaying = cond;
+    });*/
   }
 
   @override
@@ -82,7 +90,7 @@ class _PlayerPageState extends State<PlayerPage> {
                     ],
 
                     PlayerControls(
-                      isPlaying: _logic.isPlaying,
+                      isPlaying: isPlaying,
                       repeatMode: _logic.repeatMode,
                       onPlayPause: _logic.togglePlayPause,
                       onNext: _logic.playNextSong,
