@@ -27,6 +27,8 @@ class MyAudioHandler extends BaseAudioHandler {
     await _player.play();
   }
 
+  bool get isPlaying => _player.playing;
+
   @override
   Future<void> play() => _player.play();
 
