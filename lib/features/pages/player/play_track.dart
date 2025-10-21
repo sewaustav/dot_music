@@ -3,7 +3,6 @@ import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:flutter/material.dart';
 import 'package:dot_music/design/colors.dart';
 
-
 class PlayerPage extends StatefulWidget {
   const PlayerPage({
     super.key, 
@@ -23,6 +22,7 @@ class PlayerPage extends StatefulWidget {
 class _PlayerPageState extends State<PlayerPage> {
   late PlayerLogic _logic;
   bool isPlaying = true;
+  bool isLoadingPlaybackCount = true;
 
   @override
   void initState() {
@@ -32,9 +32,10 @@ class _PlayerPageState extends State<PlayerPage> {
       refreshUI: _refreshUI,
       initialIndex: widget.index,
       playlist: widget.playlist,
-      refreshBtn: refreshBtn
+      refreshBtn: refreshBtn,
+      onPlaybackCountLoaded: _onPlaybackCountLoaded,
     );
-    _logic.initialize();
+    _logic.init();
   }
 
   void _refreshUI() {
@@ -44,9 +45,17 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   void refreshBtn(bool cond) {
-    /*setState(() {
+    setState(() {
       isPlaying = cond;
-    });*/
+    });
+  }
+
+  void _onPlaybackCountLoaded(bool loading) {
+    if (mounted) {
+      setState(() {
+        isLoadingPlaybackCount = loading;
+      });
+    }
   }
 
   @override
@@ -76,6 +85,7 @@ class _PlayerPageState extends State<PlayerPage> {
                       title: _logic.currentTitle,
                       artist: _logic.currentArtist,
                       playbackCount: _logic.playbackCount,
+                      isLoading: isLoadingPlaybackCount,
                     ),
 
                     const SizedBox(height: 24),
@@ -133,6 +143,3 @@ class _PlayerPageState extends State<PlayerPage> {
   void _editTrackInfo() {}
   void _openPlayerSettings() {}
 }
-
-
-

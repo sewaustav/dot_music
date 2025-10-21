@@ -1,6 +1,5 @@
-// --------------------------- Service ----------------------------
-
 import 'dart:math';
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:dot_music/core/config.dart';
@@ -15,7 +14,8 @@ import 'package:sqflite/sqflite.dart';
 
 class PlayerLogic {
   final VoidCallback refreshUI;
-  final refreshBtn;
+  final Function(bool) refreshBtn;
+  final Function(bool)? onPlaybackCountLoaded;
   final int initialIndex;
   final int playlist;
   final String? initialPath; 
@@ -29,12 +29,15 @@ class PlayerLogic {
 
   bool isPlaying = true;
   RepeatMode repeatMode = RepeatMode.off;
+  bool _isPlaybackCountLoading = true;
 
   final PlaylistView pv = PlaylistView();
   final DbHelper _dbHelper = DbHelper();
   Database? _db;
 
   final OnAudioQuery _audioQuery = OnAudioQuery();
+  StreamSubscription<Duration>? _positionSubscription;
+  StreamSubscription<Duration?>? _durationSubscription;
 
   PlayerLogic({
     required this.refreshUI,
@@ -42,55 +45,66 @@ class PlayerLogic {
     required this.playlist,
     required this.refreshBtn,
     this.initialPath,
+    this.onPlaybackCountLoaded,
   });
 
-  Future<void> initialize() async {
+  Future<void> init() async {
+    songs = await _getSongs();
+    currentSongIndex = (initialIndex < songs.length) ? initialIndex : 0;
+    if (playlist != 0) {
+      updateCount(songs[currentSongIndex]["track_id"]);
+    }
+
+    audioHandler.onTrackComplete = _handleTrackComplete;
+      
+    _setupAudioListeners();
+
+    await _playTrack();
+
+    refreshUI();
+  }
+
+
+  Future<void> _playTrack() async {
+    logger.i('playTrack start, setting isPlaying=true (currentIndex=$currentSongIndex)');
+    if (songs.isEmpty) {
+      error = 'No songs available';
+      refreshUI();
+      return;
+    }
     try {
-      final songsList = await _getSongs();
-      songs = songsList;
-
-      if (playlist == 0) {
-        if (initialPath != null && initialPath!.isNotEmpty) {
-          final found = songs.indexWhere((m) => (m['path'] ?? m['data']) == initialPath);
-          currentSongIndex = (found != -1) ? found : (initialIndex < songs.length ? initialIndex : 0);
-        } else {
-          currentSongIndex = (initialIndex < songs.length) ? initialIndex : 0;
-        }
-      } else {
-        currentSongIndex = (initialIndex < songs.length) ? initialIndex : 0;
+      final path = songs[currentSongIndex]['path'] ?? songs[currentSongIndex]['data'];
+      if (path == null) {
+        throw Exception('No path for current song');
       }
+      await audioHandler.playFromFile(path);
 
-      audioHandler.onTrackComplete = _handleTrackComplete;
-      
-      _setupAudioListeners();
-      
-      await _playTrack();
-      if (songs.isNotEmpty && songs[currentSongIndex]['id'] != null) {
-        await _loadPlaybackCount(songs[currentSongIndex]["id"]);
-      }
+    
+      isPlaying = true;
+      refreshBtn(isPlaying);
       
       refreshUI();
       
     } catch (e, st) {
-      logger.e('Initialize failed', error: e, stackTrace: st);
-      error = 'Initialize error: $e';
+      logger.e('Play failed', error: e, stackTrace: st);
+      error = 'Playback error: $e';
       refreshUI();
     }
   }
 
   void _setupAudioListeners() {
-    audioHandler.positionStream.listen((pos) {
+    _positionSubscription = audioHandler.positionStream.listen((pos) {
       currentPosition = pos;
       refreshUI();
     });
 
-    audioHandler.durationStream.listen((dur) {
+    _durationSubscription = audioHandler.durationStream.listen((dur) {
       totalDuration = dur ?? Duration.zero;
       refreshUI();
     });
-
-    
   }
+
+  
 
   Future<List<Map<String, dynamic>>> _getSongs() async {
     if (playlist == 0) {
@@ -103,10 +117,8 @@ class PlayerLogic {
 
         final filtered = raw
             .where((song) =>
-                // ignore: unnecessary_null_comparison
                 song.data != null &&
                 song.data.isNotEmpty &&
-                // ignore: unnecessary_null_comparison
                 song.title != null &&
                 song.title.isNotEmpty)
             .toList();
@@ -134,54 +146,10 @@ class PlayerLogic {
     }
   }
 
-
   Future<Database> get db async => _db ??= await DatabaseHelper().db;
 
-  Future<void> _loadPlaybackCount(int trackId) async {
-    try {
-      final database = await db;
-      final stat = StatRepository(database);
-      final count = await stat.getPlaybackCount(trackId);
-      playbackCount = count;
-      refreshUI();
-    } catch (e) {
-      logger.e('Load playback count failed', error: e);
-    }
-  }
+  
 
-  Future<void> _playTrack() async {
-    logger.i('playTrack start, setting isPlaying=true (currentIndex=$currentSongIndex)');
-    if (songs.isEmpty) {
-      error = 'No songs available';
-      refreshUI();
-      return;
-    }
-    try {
-
-      final path = songs[currentSongIndex]['path'] ?? songs[currentSongIndex]['data'];
-      if (path == null) {
-        throw Exception('No path for current song');
-      }
-      await audioHandler.playFromFile(path);
-      isPlaying = true;
-      refreshBtn(isPlaying);
-      
-      Future.microtask(refreshUI);
-
-      int songId = songs[currentSongIndex]['id'];
-      if (playlist == 0) {
-        songId = await _dbHelper.getTrackIdByPath(songs[currentSongIndex]["path"]);
-      }
-      logger.i("Info about song - ${songs[currentSongIndex]}");
-      
-      await updateCount(songId);
-      
-    } catch (e, st) {
-      logger.e('Play failed', error: e, stackTrace: st);
-      error = 'Playback error: $e';
-      refreshUI();
-    }
-  }
 
   Future<void> updateCount(int trackId) async {
     try {
@@ -189,8 +157,8 @@ class PlayerLogic {
       final stat = StatRepository(database);
       logger.i("Track id -- $trackId");
       await stat.registerPlayback(trackId);
-      int newPlaybackCount = await stat.getPlaybackCount(trackId);
-      playbackCount = newPlaybackCount;
+      playbackCount = await stat.getPlaybackCount(songs[currentSongIndex]["track_id"]);
+      logger.i("Update count - new = $playbackCount");
       refreshUI();
       
     } catch (e, st) {
@@ -198,10 +166,24 @@ class PlayerLogic {
     }
   }
 
+  Future<void> _updateCurrentTrackCount() async {
+    if (songs.isNotEmpty && currentSongIndex < songs.length) {
+      int songId = songs[currentSongIndex]['track_id'];
+      if (playlist == 0) {
+        try {
+          songId = await _dbHelper.getTrackIdByPath(songs[currentSongIndex]["path"]);
+        } catch (e) {
+          logger.e('Error getting track id by path', error: e);
+        }
+      }
+      await updateCount(songId);
+    }
+  }
+
   Future<void> playNextSong() async {
     if (songs.isEmpty) return;
 
-    logger.i("playNextSong - current: $currentSongIndex");
+    logger.i("playNextSong - current: ${songs[currentSongIndex]["track_id"]}");
     await audioHandler.stop();
 
     int nextIndex;
@@ -210,18 +192,18 @@ class PlayerLogic {
     } else {
       nextIndex = currentSongIndex + 1;
     }
-
+    
     currentSongIndex = nextIndex;
     isPlaying = true;
+    await _updateCurrentTrackCount();
     refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
+
   }
 
   Future<void> playPreviousSong() async {
     if (songs.isEmpty) return;
-
-    logger.i("playPreviousSong - current path: ${songs[currentSongIndex]['path'] ?? songs[currentSongIndex]['data']}");
     await audioHandler.stop();
 
     int prevIndex;
@@ -233,6 +215,7 @@ class PlayerLogic {
 
     currentSongIndex = prevIndex;
     isPlaying = true;
+    await _updateCurrentTrackCount();
     refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
@@ -252,6 +235,7 @@ class PlayerLogic {
 
     currentSongIndex = nextSong;
     isPlaying = true;
+    await _updateCurrentTrackCount();
     refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
@@ -269,19 +253,22 @@ class PlayerLogic {
     refreshBtn(isPlaying);
   }
 
-  void _handleTrackComplete() {
+  void _handleTrackComplete() async {
+    // Обновляем счетчик для текущего трека перед переходом
+    await _updateCurrentTrackCount();
+
     switch (repeatMode) {
       case RepeatMode.off:
-        playNextSong();
+        await playNextSong();
         break;
       case RepeatMode.one:
-        _playTrack();
+        await _playTrack();
         break;
       case RepeatMode.queue:
-        _playTrack();
+        await _playTrack();
         break;
       case RepeatMode.random:
-        playRandomSong();
+        await playRandomSong();
         break;
     }
   }
@@ -293,6 +280,11 @@ class PlayerLogic {
 
   void seek(Duration position) {
     audioHandler.seek(position);
+  }
+
+  void dispose() {
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
   }
 
   // Getters for UI

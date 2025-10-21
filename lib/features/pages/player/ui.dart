@@ -6,11 +6,18 @@ import 'package:flutter/material.dart';
 enum RepeatMode { off, one, queue, random }
 
 class PlayerHeader extends StatelessWidget {
-  const PlayerHeader({super.key, required this.title, required this.artist, required this.playbackCount});
+  const PlayerHeader({
+    super.key, 
+    required this.title, 
+    required this.artist, 
+    required this.playbackCount,
+    this.isLoading = false,
+  });
 
   final String title;
   final String artist;
   final int playbackCount;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +38,9 @@ class PlayerHeader extends StatelessWidget {
         const SizedBox(height: 6),
         Text(artist, style: const TextStyle(color: Colors.white70, fontSize: 14)),
         const SizedBox(height: 8),
+        
         Text('Plays: $playbackCount', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+        
       ],
     );
   }
@@ -66,7 +75,10 @@ class PlayerProgress extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [Text(_format(current), style: const TextStyle(color: Colors.white60, fontSize: 12)), Text(_format(total), style: const TextStyle(color: Colors.white60, fontSize: 12))],
+            children: [
+              Text(_format(current), style: const TextStyle(color: Colors.white60, fontSize: 12)), 
+              Text(_format(total), style: const TextStyle(color: Colors.white60, fontSize: 12))
+            ],
           ),
         )
       ],
@@ -107,6 +119,19 @@ class PlayerControls extends StatelessWidget {
     }
   }
 
+  Color _repeatColor() {
+    switch (repeatMode) {
+      case RepeatMode.off:
+        return Colors.white60;
+      case RepeatMode.one:
+        return accent;
+      case RepeatMode.queue:
+        return accent;
+      case RepeatMode.random:
+        return accent;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -116,6 +141,7 @@ class PlayerControls extends StatelessWidget {
           onPressed: onShuffle,
           icon: const Icon(Icons.shuffle),
           iconSize: 26,
+          color: repeatMode == RepeatMode.random ? accent : Colors.white60,
           tooltip: 'Shuffle',
         ),
         const SizedBox(width: 8),
@@ -123,6 +149,7 @@ class PlayerControls extends StatelessWidget {
           onPressed: onPrev,
           icon: const Icon(Icons.skip_previous),
           iconSize: 36,
+          color: Colors.white,
         ),
         const SizedBox(width: 8),
         // Central play/pause button
@@ -142,21 +169,42 @@ class PlayerControls extends StatelessWidget {
           onPressed: onNext,
           icon: const Icon(Icons.skip_next),
           iconSize: 36,
+          color: Colors.white,
         ),
         const SizedBox(width: 8),
         IconButton(
           onPressed: onChangeRepeatMode,
           icon: Icon(_repeatIcon()),
           iconSize: 26,
-          tooltip: 'Repeat mode',
+          color: _repeatColor(),
+          tooltip: _getRepeatTooltip(),
         ),
       ],
     );
   }
+
+  String _getRepeatTooltip() {
+    switch (repeatMode) {
+      case RepeatMode.off:
+        return 'Repeat Off';
+      case RepeatMode.one:
+        return 'Repeat One';
+      case RepeatMode.queue:
+        return 'Repeat Queue';
+      case RepeatMode.random:
+        return 'Random';
+    }
+  }
 }
 
 class PlayerActionsRow extends StatelessWidget {
-  const PlayerActionsRow({super.key, required this.onOpenPlaylist, required this.onFavorite, required this.onDelete, required this.onEdit});
+  const PlayerActionsRow({
+    super.key, 
+    required this.onOpenPlaylist, 
+    required this.onFavorite, 
+    required this.onDelete, 
+    required this.onEdit
+  });
 
   final VoidCallback onOpenPlaylist;
   final VoidCallback onFavorite;
@@ -165,7 +213,6 @@ class PlayerActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Icons-only row as requested
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 6),
       child: Row(
@@ -175,21 +222,25 @@ class PlayerActionsRow extends StatelessWidget {
             onPressed: onOpenPlaylist,
             icon: const Icon(Icons.playlist_play),
             tooltip: 'Playlist',
+            color: Colors.white70,
           ),
           IconButton(
             onPressed: onFavorite,
             icon: const Icon(Icons.favorite_border),
             tooltip: 'Favorite',
+            color: Colors.white70,
           ),
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Remove',
+            color: Colors.white70,
           ),
           IconButton(
             onPressed: onEdit,
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Edit',
+            color: Colors.white70,
           ),
         ],
       ),
