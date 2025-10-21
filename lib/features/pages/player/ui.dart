@@ -164,6 +164,7 @@ class PlayerControls extends StatelessWidget {
           ),
           child: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 30),
         ),
+
         const SizedBox(width: 8),
         IconButton(
           onPressed: onNext,

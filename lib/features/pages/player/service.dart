@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:async';
 import 'dart:ui';
@@ -29,7 +30,6 @@ class PlayerLogic {
 
   bool isPlaying = true;
   RepeatMode repeatMode = RepeatMode.off;
-  bool _isPlaybackCountLoading = true;
 
   final PlaylistView pv = PlaylistView();
   final DbHelper _dbHelper = DbHelper();
@@ -78,10 +78,6 @@ class PlayerLogic {
         throw Exception('No path for current song');
       }
       await audioHandler.playFromFile(path);
-
-    
-      isPlaying = true;
-      refreshBtn(isPlaying);
       
       refreshUI();
       
@@ -117,8 +113,10 @@ class PlayerLogic {
 
         final filtered = raw
             .where((song) =>
+                // ignore: unnecessary_null_comparison
                 song.data != null &&
                 song.data.isNotEmpty &&
+                // ignore: unnecessary_null_comparison
                 song.title != null &&
                 song.title.isNotEmpty)
             .toList();
@@ -194,8 +192,9 @@ class PlayerLogic {
     }
     
     currentSongIndex = nextIndex;
-    isPlaying = true;
+
     await _updateCurrentTrackCount();
+    isPlaying = true;
     refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
@@ -214,8 +213,8 @@ class PlayerLogic {
     }
 
     currentSongIndex = prevIndex;
-    isPlaying = true;
     await _updateCurrentTrackCount();
+    isPlaying = true;
     refreshBtn(isPlaying);
     refreshUI();
     await _playTrack();
@@ -234,24 +233,28 @@ class PlayerLogic {
     }
 
     currentSongIndex = nextSong;
-    isPlaying = true;
     await _updateCurrentTrackCount();
+    isPlaying = true;
     refreshBtn(isPlaying);
+
     refreshUI();
     await _playTrack();
   }
 
-  void togglePlayPause() {
-    if (isPlaying) {
-      audioHandler.pause();
-      isPlaying = false;
-    } else {
-      audioHandler.play();
-      isPlaying = true;
-    }
-    logger.i('togglePlayPause after: isPlaying=$isPlaying');
+  void togglePlayPause() async {
+    final playing = audioHandler.isPlaying;
+    isPlaying = !isPlaying;
     refreshBtn(isPlaying);
+
+    if (playing) {
+      await audioHandler.pause();
+    } else {
+      await audioHandler.play();
+    }
+
   }
+
+
 
   void _handleTrackComplete() async {
     // Обновляем счетчик для текущего трека перед переходом
