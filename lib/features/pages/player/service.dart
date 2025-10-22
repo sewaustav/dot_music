@@ -256,21 +256,30 @@ class PlayerLogic {
 
 
   void _handleTrackComplete() async {
-    // Обновляем счетчик для текущего трека перед переходом
-    await _updateCurrentTrackCount();
+    logger.i("----------------");
+
+    logger.i("$songs");
+
+    logger.i("${songs[currentSongIndex]}");
+
+    logger.i("---------------------");
 
     switch (repeatMode) {
       case RepeatMode.off:
         await playNextSong();
+        logger.i("Next tt");
         break;
       case RepeatMode.one:
         await _playTrack();
+        logger.i("One more");
         break;
       case RepeatMode.queue:
         await _playTrack();
+        logger.i("One more b");
         break;
       case RepeatMode.random:
         await playRandomSong();
+        logger.i("random");
         break;
     }
   }
