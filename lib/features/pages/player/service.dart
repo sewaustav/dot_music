@@ -9,10 +9,12 @@ import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
+import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:sqflite/sqflite.dart';
 
-class PlayerLogic {
+class PlayerLogic extends ChangeNotifier {
+
   final VoidCallback refreshUI;
   final Function(bool) refreshBtn;
   final Function(bool)? onPlaybackCountLoaded;
@@ -61,11 +63,11 @@ class PlayerLogic {
     await _playTrack();
 
     refreshUI();
+    notifyListeners();
   }
 
 
   Future<void> _playTrack() async {
-    logger.i('playTrack start, setting isPlaying=true (currentIndex=$currentSongIndex)');
     if (songs.isEmpty) {
       error = 'No songs available';
       refreshUI();
@@ -79,11 +81,13 @@ class PlayerLogic {
       await audioHandler.playFromFile(path);
       
       refreshUI();
+      notifyListeners();
       
     } catch (e, st) {
       logger.e('Play failed', error: e, stackTrace: st);
       error = 'Playback error: $e';
       refreshUI();
+      notifyListeners();
     }
   }
 
@@ -91,15 +95,15 @@ class PlayerLogic {
     _positionSubscription = audioHandler.positionStream.listen((pos) {
       currentPosition = pos;
       refreshUI();
+      notifyListeners();
     });
 
     _durationSubscription = audioHandler.durationStream.listen((dur) {
       totalDuration = dur ?? Duration.zero;
       refreshUI();
+      notifyListeners();
     });
   }
-
-  
 
   Future<List<Map<String, dynamic>>> _getSongs() async {
     if (playlist == 0) {
@@ -145,18 +149,14 @@ class PlayerLogic {
 
   Future<Database> get db async => _db ??= await DatabaseHelper().db;
 
-  
-
-
   Future<void> updateCount(int trackId) async {
     try {
       final database = await db;
       final stat = StatRepository(database);
-      logger.i("Track id -- $trackId");
       await stat.registerPlayback(trackId);
       playbackCount = await stat.getPlaybackCount(songs[currentSongIndex]["track_id"]);
-      logger.i("Update count - new = $playbackCount");
       refreshUI();
+      notifyListeners();
       
     } catch (e, st) {
       logger.e('Update count failed', error: e, stackTrace: st);
@@ -180,20 +180,6 @@ class PlayerLogic {
   Future<void> playNextSong() async {
     if (songs.isEmpty) return;
 
-    logger.i("-****************---");
-
-    /*for (dynamic song in songs) {
-      logger.i("${song["title"]}");
-    }*/
-
-    logger.i("${songs[currentSongIndex]["title"]}");
-
-    logger.i("${songs[currentSongIndex+1]["title"]}");
-
-
-    logger.i("-*********************-");
-    // await audioHandler.stop();
-
     int nextIndex;
     if (currentSongIndex >= songs.length - 1) {
       nextIndex = 0;
@@ -207,6 +193,7 @@ class PlayerLogic {
     isPlaying = true;
     refreshBtn(isPlaying);
     refreshUI();
+    notifyListeners();
     await _playTrack();
 
   }
@@ -227,6 +214,7 @@ class PlayerLogic {
     isPlaying = true;
     refreshBtn(isPlaying);
     refreshUI();
+    notifyListeners();
     await _playTrack();
   }
 
@@ -235,8 +223,7 @@ class PlayerLogic {
 
     await audioHandler.stop();
     final random = Random();
-    logger.i("playRandomSong - current path: ${songs[currentSongIndex]['path'] ?? songs[currentSongIndex]['data']}");
-
+    
     int nextSong = random.nextInt(songs.length);
     if (nextSong == currentSongIndex && songs.length > 1) {
       nextSong = (nextSong + 1) % songs.length;
@@ -248,54 +235,43 @@ class PlayerLogic {
     refreshBtn(isPlaying);
 
     refreshUI();
+    notifyListeners();
     await _playTrack();
   }
 
   void togglePlayPause() async {
     final playing = audioHandler.isPlaying;
-    isPlaying = !isPlaying;
-    refreshBtn(isPlaying);
-
+    
     if (playing) {
       await audioHandler.pause();
+      isPlaying = false;
     } else {
       await audioHandler.play();
+      isPlaying = true;
     }
-
+    
+    refreshBtn(isPlaying);
+    notifyListeners();
   }
 
-
-
   void _handleTrackComplete() async {
-    logger.i("----------------");
-
-    /*for (dynamic song in songs) {
-      logger.i("${song["title"]}");
-    }*/
-
-    logger.i("${songs[currentSongIndex]["title"]}");
-
-    logger.i("${songs[currentSongIndex+1]["title"]}");
-
-
-    logger.i("---------------------");
 
     switch (repeatMode) {
       case RepeatMode.off:
         await playNextSong();
-        logger.i("Next tt");
+
         break;
       case RepeatMode.one:
         await _playTrack();
-        logger.i("One more");
+
         break;
       case RepeatMode.queue:
         await _playTrack();
-        logger.i("One more b");
+
         break;
       case RepeatMode.random:
         await playRandomSong();
-        logger.i("random");
+
         break;
     }
   }
@@ -303,16 +279,13 @@ class PlayerLogic {
   void changeRepeatMode() {
     repeatMode = RepeatMode.values[(repeatMode.index + 1) % RepeatMode.values.length];
     refreshUI();
+    notifyListeners();
   }
 
   void seek(Duration position) {
     audioHandler.seek(position);
   }
 
-  void dispose() {
-    _positionSubscription?.cancel();
-    _durationSubscription?.cancel();
-  }
 
   // Getters for UI
   Map<String, dynamic>? get currentSong =>

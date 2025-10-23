@@ -11,20 +11,64 @@ class MiniPlayer extends StatefulWidget {
 }
 
 class _MiniPlayerState extends State<MiniPlayer> {
+  final PlayerStateListener _playerListener = PlayerStateListener();
+
+  @override
+  void initState() {
+    super.initState();
+    _playerListener.addListener(_onPlayerChanged);
+  }
+
+  void _onPlayerChanged() {
+    if (mounted) {
+      Future.delayed(Duration.zero, () {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  void _onMiniPlayerTap(BuildContext context) {
+    final logic = _playerListener.playerLogic;
+    if (logic != null) {
+      final currentPath = _playerListener.currentSong?['path'];
+      final currentIndex = logic.currentSongIndex;
+      final currentPlaylist = logic.playlist;
+      
+      if (_playerListener.isSameTrack(currentPath!, currentIndex, currentPlaylist)) {
+        context.push(
+          "/player",
+          extra: {
+            "songData": currentPath,
+            "index": currentIndex,
+            "playlist": currentPlaylist,
+            "fromMiniPlayer": true, 
+          },
+        );
+      } else {
+        // Если другой трек - открываем с новыми параметрами
+        context.push(
+          "/player", 
+          extra: {
+            "songData": currentPath,
+            "index": currentIndex,
+            "playlist": currentPlaylist,
+            "fromMiniPlayer": true
+          },
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (!playerLogicHolder.isInitialized) return const SizedBox.shrink();
-    final logic = playerLogicHolder.logic;
-
-    if (logic.currentSong == null) {
+    if (!_playerListener.hasPlayer || _playerListener.currentSong == null) {
       return const SizedBox.shrink();
     }
 
-    // ✅ убрали Align — пусть высота задаётся контейнером
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: 72, // ограничиваем высоту чётко
+        height: 72, 
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -41,16 +85,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
-            onTap: () {
-              context.push(
-                "/player",
-                extra: {
-                  "songData": logic.currentSong?['path'],
-                  "index": logic.currentSongIndex,
-                  "playlist": logic.playlist,
-                },
-              );
-            },
+            onTap: () => _onMiniPlayerTap(context),
             child: Row(
               children: [
                 ClipRRect(
@@ -69,7 +104,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        logic.currentTitle,
+                        _playerListener.currentTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -80,7 +115,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        logic.currentArtist,
+                        _playerListener.currentArtist,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -93,12 +128,10 @@ class _MiniPlayerState extends State<MiniPlayer> {
                 ),
                 IconButton(
                   onPressed: () {
-                    setState(() {
-                      logic.togglePlayPause();
-                    });
+                    _playerListener.playerLogic?.togglePlayPause();
                   },
                   icon: Icon(
-                    logic.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                    _playerListener.isPlaying ? Icons.pause_circle : Icons.play_circle,
                     color: accent,
                     size: 36,
                   ),
@@ -109,5 +142,11 @@ class _MiniPlayerState extends State<MiniPlayer> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _playerListener.removeListener(_onPlayerChanged);
+    super.dispose();
   }
 }

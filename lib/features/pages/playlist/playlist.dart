@@ -39,6 +39,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
       "songData": song["path"],
       "index": index,
       "playlist": widget.playlist,
+      "fromMiniPlayer": false
     });
     logger.i("Playing track: ${song['title']}");
   }

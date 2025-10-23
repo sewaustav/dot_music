@@ -84,7 +84,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
-      bottomNavigationBar: const MiniPlayer(),
+      //bottomNavigationBar: const MiniPlayer(),
       body: Stack(
         children: [
           SafeArea(

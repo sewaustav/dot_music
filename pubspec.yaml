@@ -21,6 +21,7 @@ dependencies:
   path: ^1.9.1
   audio_service: ^0.18.18
   permission_handler: ^11.0.1
+  provider: ^6.0.5
 
 dev_dependencies:
   flutter_test:
