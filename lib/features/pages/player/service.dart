@@ -180,8 +180,19 @@ class PlayerLogic {
   Future<void> playNextSong() async {
     if (songs.isEmpty) return;
 
-    logger.i("playNextSong - current: ${songs[currentSongIndex]["track_id"]}");
-    await audioHandler.stop();
+    logger.i("-****************---");
+
+    /*for (dynamic song in songs) {
+      logger.i("${song["title"]}");
+    }*/
+
+    logger.i("${songs[currentSongIndex]["title"]}");
+
+    logger.i("${songs[currentSongIndex+1]["title"]}");
+
+
+    logger.i("-*********************-");
+    // await audioHandler.stop();
 
     int nextIndex;
     if (currentSongIndex >= songs.length - 1) {
@@ -258,9 +269,14 @@ class PlayerLogic {
   void _handleTrackComplete() async {
     logger.i("----------------");
 
-    logger.i("$songs");
+    /*for (dynamic song in songs) {
+      logger.i("${song["title"]}");
+    }*/
 
-    logger.i("${songs[currentSongIndex]}");
+    logger.i("${songs[currentSongIndex]["title"]}");
+
+    logger.i("${songs[currentSongIndex+1]["title"]}");
+
 
     logger.i("---------------------");
 
