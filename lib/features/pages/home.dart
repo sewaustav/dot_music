@@ -3,6 +3,7 @@ import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/music_library.dart';
+import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -83,6 +84,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
+      bottomNavigationBar: const MiniPlayer(),
       body: Stack(
         children: [
           SafeArea(

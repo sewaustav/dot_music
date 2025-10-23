@@ -26,7 +26,9 @@ class DotMusic extends StatelessWidget {
           appBarTheme: AppBarTheme(
             iconTheme: IconThemeData(color: Colors.white), // Белые иконки в AppBar
         ),
+      
       ),
+      
     );
   }
 }

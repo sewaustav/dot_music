@@ -1,3 +1,4 @@
+import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/player/service.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,7 @@ class _PlayerPageState extends State<PlayerPage> {
       refreshBtn: refreshBtn,
       onPlaybackCountLoaded: _onPlaybackCountLoaded,
     );
+    playerLogicHolder.set(_logic);
     _logic.init();
   }
 
