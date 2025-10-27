@@ -66,6 +66,9 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <meta-data
+            android:name="media_session_style"
+            android:value="compact" />
     </application>
 
     <!-- Запросы для ProcessTextPlugin -->

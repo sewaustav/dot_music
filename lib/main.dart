@@ -10,6 +10,7 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     // await DatabaseHelper().deleteDatabaseFile();
     await DatabaseHelper().db;
+    
 
     await initAudioService();
     runApp(DotMusic());

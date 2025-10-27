@@ -104,6 +104,7 @@ class _PlayerPageState extends State<PlayerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: background,
+      
       appBar: AppBar(
         backgroundColor: primary,
         title: Text(_logic.currentTitle),

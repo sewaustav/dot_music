@@ -45,7 +45,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
           },
         );
       } else {
-        // Если другой трек - открываем с новыми параметрами
+
         context.push(
           "/player", 
           extra: {
