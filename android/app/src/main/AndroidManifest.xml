@@ -23,9 +23,9 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:label="dot_music"
+        android:label="Music player"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/dot_music">
 
         <activity
             android:name=".MainActivity"

@@ -10,8 +10,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    
 
   cupertino_icons: ^1.0.8
+  flutter_native_splash: ^2.3.0
+  flutter_launcher_icons: ^0.13.1
   logger: ^2.6.1
   on_audio_query: ^2.9.0
   go_router: ^16.2.1
@@ -33,3 +36,21 @@ dev_dependencies:
 flutter:
 
   uses-material-design: true
+
+assets:
+  - assets/dot_music.png
+  - assets/dot_music_logo.png
+
+flutter_native_splash:
+  color: "#ffffff" 
+  image: assets/dot_music.png 
+  android: true 
+  ios: true 
+  fullscreen: true 
+
+flutter_launcher_icons:
+  android: "dot_music" 
+  ios: true 
+  image_path: "assets/dot_music_logo.png" 
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/dot_music_logo.png" 
