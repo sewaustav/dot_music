@@ -11,7 +11,6 @@ class PlayerStateListener {
   PlayerLogic? _playerLogic;
   final List<VoidCallback> _listeners = [];
   
-  
   PlayerStateListener._internal();
   
   void registerPlayer(PlayerLogic playerLogic) {
@@ -60,6 +59,26 @@ class PlayerStateListener {
           currentPlaylist == playlist;
   }
   
+  // 🎵 НОВЫЕ МЕТОДЫ для управления плеером
+  Future<void> playNext() async {
+    if (_playerLogic != null) {
+      await _playerLogic!.playNextSong();
+    }
+  }
+  
+  Future<void> playPrevious() async {
+    if (_playerLogic != null) {
+      await _playerLogic!.playPreviousSong();
+    }
+  }
+  
+  Future<void> togglePlayPause() async {
+    if (_playerLogic != null) {
+      _playerLogic!.togglePlayPause();
+    }
+  }
+  
+  // Getters
   bool get isPlaying => _playerLogic?.isPlaying ?? false;
   String get currentTitle => _playerLogic?.currentTitle ?? '';
   String get currentArtist => _playerLogic?.currentArtist ?? '';
