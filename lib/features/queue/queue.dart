@@ -1,30 +1,41 @@
 class QueueService {
 
 
-  List<Map<String, dynamic>> makeQueue(List<Map<String, dynamic>> queue) {
+  List<Map<String, dynamic>> makeQueue(
+    List<Map<String, dynamic>> songs, 
+    int index
+  ) {
+
+    final queue = List<Map<String, dynamic>>.from(songs);
+
+    final song = queue.removeAt(index);
+    queue.insert(0, song);
     return queue;
   }
 
-  List<Map<String, dynamic>> shuffleQueue(List<Map<String, dynamic>> queue) {
+  void shuffleQueue(
+    List<Map<String, dynamic>> queue, 
+    int currentIndex
+  ) {
+    final song = queue.removeAt(currentIndex);
     queue.shuffle();
-    return queue;
+    queue.insert(0, song);
+    currentIndex = 0;
   }
 
-  List<Map<String, dynamic>> addToQueue(
+  void addToQueue(
     List<Map<String, dynamic>> queue, 
     Map<String, dynamic> song
   ) {
     queue.add(song);
-    return queue;
   }
 
-  List<Map<String, dynamic>> insertToQueue(
+  void insertToQueue(
     List<Map<String, dynamic>> queue, 
     Map<String, dynamic> song,
     int currentIndex
   ) {
     queue.insert(currentIndex+1, song);
-    return queue;
     
   }
 

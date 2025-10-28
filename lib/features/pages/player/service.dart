@@ -9,6 +9,7 @@ import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
+import 'package:dot_music/features/queue/queue.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:sqflite/sqflite.dart';
@@ -34,6 +35,7 @@ class PlayerLogic extends ChangeNotifier {
 
   final PlaylistView pv = PlaylistView();
   final DbHelper _dbHelper = DbHelper();
+  final queue = QueueService();
   Database? _db;
 
   final OnAudioQuery _audioQuery = OnAudioQuery();
@@ -50,11 +52,13 @@ class PlayerLogic extends ChangeNotifier {
   });
 
   Future<void> init() async {
-    songs = await _getSongs();
-    currentSongIndex = (initialIndex < songs.length) ? initialIndex : 0;
+    List<Map<String, dynamic>> _songs = await _getSongs();
+    songs = queue.makeQueue(_songs, initialIndex);
+    currentSongIndex = 0;
     if (playlist != 0) {
       updateCount(songs[currentSongIndex]["track_id"]);
     }
+
 
     audioHandler.onTrackComplete = _handleTrackComplete;
       
@@ -177,6 +181,20 @@ class PlayerLogic extends ChangeNotifier {
     }
   }
 
+  void changeRepeatMode() {
+    final previousMode = repeatMode;
+    repeatMode = RepeatMode.values[(repeatMode.index + 1) % RepeatMode.values.length];
+
+    // Только если перешли НА random — перемешиваем очередь
+    if (repeatMode == RepeatMode.random && previousMode != RepeatMode.random) {
+      queue.shuffleQueue(songs, currentSongIndex);
+      currentSongIndex = 0; // потому что shuffleQueue перемещает текущую песню на 0
+    }
+
+    refreshUI();
+    notifyListeners();
+  }
+
   Future<void> playNextSong() async {
     if (songs.isEmpty) return;
 
@@ -265,21 +283,12 @@ class PlayerLogic extends ChangeNotifier {
         await _playTrack();
 
         break;
-      case RepeatMode.queue:
-        await _playTrack();
-
-        break;
+      
       case RepeatMode.random:
         await playRandomSong();
 
         break;
     }
-  }
-
-  void changeRepeatMode() {
-    repeatMode = RepeatMode.values[(repeatMode.index + 1) % RepeatMode.values.length];
-    refreshUI();
-    notifyListeners();
   }
 
   void seek(Duration position) {
