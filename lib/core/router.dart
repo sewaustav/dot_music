@@ -40,7 +40,8 @@ final router = GoRouter(
             final path = extra["songData"] as String; 
             final index = extra["index"] as int; 
             final playlist = extra["playlist"] as int;
-            final page = PlayerPage(path: path, index: index, playlist: playlist);
+            final miniPlayer = extra["fromMiniPlayer"] as bool;
+            final page = PlayerPage(path: path, index: index, playlist: playlist, fromMiniPlayer: miniPlayer);
             return page;
           },
         ),

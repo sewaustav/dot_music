@@ -10,6 +10,7 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     // await DatabaseHelper().deleteDatabaseFile();
     await DatabaseHelper().db;
+    
 
     await initAudioService();
     runApp(DotMusic());
@@ -26,7 +27,9 @@ class DotMusic extends StatelessWidget {
           appBarTheme: AppBarTheme(
             iconTheme: IconThemeData(color: Colors.white), // Белые иконки в AppBar
         ),
+      
       ),
+      
     );
   }
 }

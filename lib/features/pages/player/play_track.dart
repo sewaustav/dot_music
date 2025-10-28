@@ -1,3 +1,5 @@
+import 'package:dot_music/core/config.dart';
+import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/player/service.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:flutter/material.dart';
@@ -9,17 +11,20 @@ class PlayerPage extends StatefulWidget {
     required this.path, 
     required this.playlist, 
     required this.index,
+    this.fromMiniPlayer = false,
   });
 
   final String path;
   final int playlist;
   final int index;
+  final bool fromMiniPlayer;
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
 }
 
 class _PlayerPageState extends State<PlayerPage> {
+  final PlayerStateListener _playerListener = PlayerStateListener();
   late PlayerLogic _logic;
   bool isPlaying = true;
   bool isLoadingPlaybackCount = true;
@@ -27,15 +32,50 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void initState() {
     super.initState();
-    _refreshUI();
-    _logic = PlayerLogic(
-      refreshUI: _refreshUI,
-      initialIndex: widget.index,
-      playlist: widget.playlist,
-      refreshBtn: refreshBtn,
-      onPlaybackCountLoaded: _onPlaybackCountLoaded,
-    );
-    _logic.init();
+    logger.i("fromMiniPlayer: ${widget.fromMiniPlayer}");
+    
+    if (widget.fromMiniPlayer && _playerListener.hasPlayer) {
+      logger.i("Переиспользуем существующий плеер");
+      _logic = _playerListener.playerLogic!;
+      _updateStateFromLogic();
+      
+      // КРИТИЧНО: Подписываемся на обновления существующего логики
+      _logic.addListener(_onLogicUpdate);
+    } else {
+      logger.i("Создаем новый плеер");
+      _logic = PlayerLogic(
+        refreshUI: _refreshUI,
+        initialIndex: widget.index,
+        playlist: widget.playlist,
+        refreshBtn: refreshBtn,
+        onPlaybackCountLoaded: _onPlaybackCountLoaded,
+      );
+
+      _logic.init();
+      PlayerStateListener().registerPlayer(_logic);
+      
+      // Подписываемся на обновления нового логики
+      _logic.addListener(_onLogicUpdate);
+    }
+  }
+
+  void _updateStateFromLogic() {
+    if (!mounted) return;
+    
+    setState(() {
+      isPlaying = _logic.isPlaying;
+      isLoadingPlaybackCount = false;
+    });
+  }
+
+  // Этот метод вызывается когда PlayerLogic вызывает notifyListeners()
+  void _onLogicUpdate() {
+    if (!mounted) return;
+    
+    setState(() {
+      isPlaying = _logic.isPlaying;
+      // Обновляем все состояния из _logic
+    });
   }
 
   void _refreshUI() {
@@ -45,23 +85,26 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   void refreshBtn(bool cond) {
+    if (!mounted) return;
+    
     setState(() {
       isPlaying = cond;
     });
   }
 
   void _onPlaybackCountLoaded(bool loading) {
-    if (mounted) {
-      setState(() {
-        isLoadingPlaybackCount = loading;
-      });
-    }
+    if (!mounted) return;
+    
+    setState(() {
+      isLoadingPlaybackCount = loading;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: background,
+      
       appBar: AppBar(
         backgroundColor: primary,
         title: Text(_logic.currentTitle),
@@ -125,8 +168,14 @@ class _PlayerPageState extends State<PlayerPage> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.red[100], borderRadius: BorderRadius.circular(8)),
-                  child: Text(_logic.error!, style: const TextStyle(color: Colors.red)),
+                  decoration: BoxDecoration(
+                    color: Colors.red[100], 
+                    borderRadius: BorderRadius.circular(8)
+                  ),
+                  child: Text(
+                    _logic.error!, 
+                    style: const TextStyle(color: Colors.red)
+                  ),
                 ),
                 const SizedBox(height: 12),
               ]
@@ -135,6 +184,13 @@ class _PlayerPageState extends State<PlayerPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // КРИТИЧНО: Отписываемся от обновлений при уходе со страницы
+    _logic.removeListener(_onLogicUpdate);
+    super.dispose();
   }
 
   void _openPlaylistView() {}

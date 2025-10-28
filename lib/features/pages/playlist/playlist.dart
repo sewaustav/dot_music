@@ -1,6 +1,7 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/design/colors.dart';
+import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -38,6 +39,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
       "songData": song["path"],
       "index": index,
       "playlist": widget.playlist,
+      "fromMiniPlayer": false
     });
     logger.i("Playing track: ${song['title']}");
   }
@@ -185,6 +187,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                 );
               },
             ),
+      bottomNavigationBar: const MiniPlayer(),
     );
   }
 }
