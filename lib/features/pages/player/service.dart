@@ -25,6 +25,7 @@ class PlayerLogic extends ChangeNotifier {
 
   String? error;
   List<Map<String, dynamic>> songs = [];
+  List<Map<String, dynamic>> _songs = [];
   int currentSongIndex = 0;
   int playbackCount = 0;
   Duration currentPosition = Duration.zero;
@@ -52,13 +53,12 @@ class PlayerLogic extends ChangeNotifier {
   });
 
   Future<void> init() async {
-    List<Map<String, dynamic>> _songs = await _getSongs();
+    _songs = await _getSongs();
     songs = queue.makeQueue(_songs, initialIndex);
     currentSongIndex = 0;
     if (playlist != 0) {
       updateCount(songs[currentSongIndex]["track_id"]);
     }
-
 
     audioHandler.onTrackComplete = _handleTrackComplete;
       
@@ -185,10 +185,12 @@ class PlayerLogic extends ChangeNotifier {
     final previousMode = repeatMode;
     repeatMode = RepeatMode.values[(repeatMode.index + 1) % RepeatMode.values.length];
 
-    // Только если перешли НА random — перемешиваем очередь
     if (repeatMode == RepeatMode.random && previousMode != RepeatMode.random) {
       queue.shuffleQueue(songs, currentSongIndex);
-      currentSongIndex = 0; // потому что shuffleQueue перемещает текущую песню на 0
+      currentSongIndex = 0; 
+    }
+    else if (repeatMode == RepeatMode.off && previousMode != RepeatMode.off) {
+      songs = queue.makeQueue(_songs, currentSongIndex);
     }
 
     refreshUI();
@@ -274,6 +276,10 @@ class PlayerLogic extends ChangeNotifier {
 
   void _handleTrackComplete() async {
 
+    for (var song in songs) {
+      logger.i("$song");
+    }
+
     switch (repeatMode) {
       case RepeatMode.off:
         await playNextSong();
@@ -285,7 +291,8 @@ class PlayerLogic extends ChangeNotifier {
         break;
       
       case RepeatMode.random:
-        await playRandomSong();
+        // await playRandomSong();
+        await playNextSong();
 
         break;
     }
