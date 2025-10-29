@@ -113,7 +113,7 @@ class PlayerControls extends StatelessWidget {
       case RepeatMode.one:
         return Icons.repeat_one;
       case RepeatMode.random:
-        return Icons.casino; // dice icon for randomness
+        return Icons.casino; 
     }
   }
 
