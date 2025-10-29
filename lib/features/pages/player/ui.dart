@@ -3,7 +3,7 @@
 import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
 
-enum RepeatMode { off, one, queue, random }
+enum RepeatMode { off, one, random }
 
 class PlayerHeader extends StatelessWidget {
   const PlayerHeader({
@@ -112,8 +112,6 @@ class PlayerControls extends StatelessWidget {
         return Icons.repeat;
       case RepeatMode.one:
         return Icons.repeat_one;
-      case RepeatMode.queue:
-        return Icons.format_list_numbered; // clearer "queue" icon
       case RepeatMode.random:
         return Icons.casino; // dice icon for randomness
     }
@@ -124,8 +122,6 @@ class PlayerControls extends StatelessWidget {
       case RepeatMode.off:
         return Colors.white60;
       case RepeatMode.one:
-        return accent;
-      case RepeatMode.queue:
         return accent;
       case RepeatMode.random:
         return accent;
@@ -190,8 +186,6 @@ class PlayerControls extends StatelessWidget {
         return 'Repeat Off';
       case RepeatMode.one:
         return 'Repeat One';
-      case RepeatMode.queue:
-        return 'Repeat Queue';
       case RepeatMode.random:
         return 'Random';
     }

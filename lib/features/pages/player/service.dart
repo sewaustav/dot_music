@@ -9,6 +9,7 @@ import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
+import 'package:dot_music/features/queue/queue.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:sqflite/sqflite.dart';
@@ -24,6 +25,7 @@ class PlayerLogic extends ChangeNotifier {
 
   String? error;
   List<Map<String, dynamic>> songs = [];
+  List<Map<String, dynamic>> _songs = [];
   int currentSongIndex = 0;
   int playbackCount = 0;
   Duration currentPosition = Duration.zero;
@@ -34,6 +36,7 @@ class PlayerLogic extends ChangeNotifier {
 
   final PlaylistView pv = PlaylistView();
   final DbHelper _dbHelper = DbHelper();
+  final queue = QueueService();
   Database? _db;
 
   final OnAudioQuery _audioQuery = OnAudioQuery();
@@ -50,8 +53,9 @@ class PlayerLogic extends ChangeNotifier {
   });
 
   Future<void> init() async {
-    songs = await _getSongs();
-    currentSongIndex = (initialIndex < songs.length) ? initialIndex : 0;
+    _songs = await _getSongs();
+    songs = queue.makeQueue(_songs, initialIndex);
+    currentSongIndex = 0;
     if (playlist != 0) {
       updateCount(songs[currentSongIndex]["track_id"]);
     }
@@ -177,6 +181,22 @@ class PlayerLogic extends ChangeNotifier {
     }
   }
 
+  void changeRepeatMode() {
+    final previousMode = repeatMode;
+    repeatMode = RepeatMode.values[(repeatMode.index + 1) % RepeatMode.values.length];
+
+    if (repeatMode == RepeatMode.random && previousMode != RepeatMode.random) {
+      queue.shuffleQueue(songs, currentSongIndex);
+      currentSongIndex = 0; 
+    }
+    else if (repeatMode == RepeatMode.off && previousMode != RepeatMode.off) {
+      songs = queue.makeQueue(_songs, currentSongIndex);
+    }
+
+    refreshUI();
+    notifyListeners();
+  }
+
   Future<void> playNextSong() async {
     if (songs.isEmpty) return;
 
@@ -256,30 +276,27 @@ class PlayerLogic extends ChangeNotifier {
 
   void _handleTrackComplete() async {
 
+    for (var song in songs) {
+      logger.i("$song");
+    }
+
     switch (repeatMode) {
       case RepeatMode.off:
         await playNextSong();
 
         break;
       case RepeatMode.one:
+        await _updateCurrentTrackCount();
         await _playTrack();
 
         break;
-      case RepeatMode.queue:
-        await _playTrack();
-
-        break;
+      
       case RepeatMode.random:
-        await playRandomSong();
+        // await playRandomSong();
+        await playNextSong();
 
         break;
     }
-  }
-
-  void changeRepeatMode() {
-    repeatMode = RepeatMode.values[(repeatMode.index + 1) % RepeatMode.values.length];
-    refreshUI();
-    notifyListeners();
   }
 
   void seek(Duration position) {

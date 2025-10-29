@@ -2,6 +2,7 @@ import 'package:dot_music/core/config.dart';
 import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/player/service.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
+import 'package:dot_music/features/pages/player/ui_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:dot_music/design/colors.dart';
 
@@ -188,12 +189,21 @@ class _PlayerPageState extends State<PlayerPage> {
 
   @override
   void dispose() {
-    // КРИТИЧНО: Отписываемся от обновлений при уходе со страницы
     _logic.removeListener(_onLogicUpdate);
     super.dispose();
   }
 
-  void _openPlaylistView() {}
+  void _openPlaylistView() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => ListOfSongFromPlaylistControl(
+        songs: _logic.songs,
+        currentIndex: _logic.currentSongIndex,
+      ),
+    );
+  }
   void _addToFavorites() {}
   void _removeFromPlaylist() {}
   void _editTrackInfo() {}
