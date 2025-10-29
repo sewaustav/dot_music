@@ -286,6 +286,7 @@ class PlayerLogic extends ChangeNotifier {
 
         break;
       case RepeatMode.one:
+        await _updateCurrentTrackCount();
         await _playTrack();
 
         break;
