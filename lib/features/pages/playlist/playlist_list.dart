@@ -1,3 +1,4 @@
+import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dot_music/core/config.dart';
@@ -78,6 +79,7 @@ class _PlaylistPageState extends State<PlaylistsListPage> {
                 );
               },
             ),
+      bottomNavigationBar: const MiniPlayer(),
     );
   }
 }

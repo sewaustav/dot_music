@@ -1,7 +1,7 @@
-import 'package:dot_music/features/pages/music_list.dart';
 import 'package:dot_music/features/pages/player/play_track.dart';
 import 'package:dot_music/features/pages/playlist/playlist.dart';
 import 'package:dot_music/features/pages/playlist/playlist_list.dart';
+import 'package:dot_music/features/pages/song_list/music_list_page.dart';
 import 'package:dot_music/features/pages/stat/annual_stat.dart';
 import 'package:dot_music/features/pages/stat/montly_stat.dart';
 import 'package:dot_music/features/pages/stat/stat_page.dart';
@@ -20,7 +20,7 @@ final router = GoRouter(
         ),
         GoRoute(
             path: "/list",
-            builder: (context, state) => const SongListWidget()
+            builder: (context, state) => const SongListPage()
         ),
         GoRoute(
           path: "/playlists",

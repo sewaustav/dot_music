@@ -40,7 +40,9 @@ class PlayerLogic extends ChangeNotifier {
   Database? _db;
 
   final OnAudioQuery _audioQuery = OnAudioQuery();
+  // ignore: unused_field
   StreamSubscription<Duration>? _positionSubscription;
+  // ignore: unused_field
   StreamSubscription<Duration?>? _durationSubscription;
 
   PlayerLogic({
