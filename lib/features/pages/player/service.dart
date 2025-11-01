@@ -86,6 +86,7 @@ class PlayerLogic extends ChangeNotifier {
       return;
     }
     try {
+      logger.i("${songs[currentSongIndex]["path"]}");
       final path = songs[currentSongIndex]['path'] ?? songs[currentSongIndex]['data'];
       if (path == null) {
         throw Exception('No path for current song');
@@ -181,13 +182,16 @@ class PlayerLogic extends ChangeNotifier {
 
   Future<void> _updateCurrentTrackCount() async {
     if (songs.isNotEmpty && currentSongIndex < songs.length) {
-      int songId = songs[currentSongIndex]['track_id'];
+      int songId;
       if (playlist == 0) {
+        songId = trackId;
         try {
           songId = await _dbHelper.getTrackIdByPath(songs[currentSongIndex]["path"]);
         } catch (e) {
           logger.e('Error getting track id by path', error: e);
         }
+      } else {
+        songId = songs[currentSongIndex]['track_id'];
       }
       await updateCount(songId);
     }
