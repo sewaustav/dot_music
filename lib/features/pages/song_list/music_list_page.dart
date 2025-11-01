@@ -91,7 +91,12 @@ class _SongListPageState extends State<SongListPage> {
     
     if (hasAccess) {
       logger.i('Воспроизведение трека: ${song.title}');
-      context.push("/player", extra: {"songData": song.data, "index": index, "playlist": 0});
+      context.push("/player", extra: {
+        "songData": song.data, 
+        "index": index, 
+        "playlist": 0,
+        "fromMiniPlayer": false
+      });
     } else {
       _showErrorSnackBar('Файл не найден: ${song.title}');
     }

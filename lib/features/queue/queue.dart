@@ -6,10 +6,14 @@ class QueueService {
     int index
   ) {
 
-    final queue = List<Map<String, dynamic>>.from(songs);
+    List<Map<String, dynamic>> queue = List<Map<String, dynamic>>.from(songs);
+
+    var songsBefore = queue.sublist(0, index);
+    var songsAfter = queue.sublist(index+1);
 
     final song = queue.removeAt(index);
-    queue.insert(0, song);
+    queue = [song, ...songsAfter, ...songsBefore];
+    
     return queue;
   }
 

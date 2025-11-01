@@ -160,4 +160,16 @@ class SongService {
     
   }
 
+  Future<int> getSongIdByPath(String path) async {
+    final db = await _db;
+
+    final result = await db.rawQuery(
+      'SELECT id FROM tracks WHERE path = ?',
+      [path]
+    );
+
+    return result.first['id'] as int;
+
+  }
+
 }

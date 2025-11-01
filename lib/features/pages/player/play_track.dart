@@ -108,7 +108,11 @@ class _PlayerPageState extends State<PlayerPage> {
       
       appBar: AppBar(
         backgroundColor: primary,
-        title: Text(_logic.currentTitle),
+        title: Text(_logic.currentTitle, style: 
+          TextStyle(
+            color: Colors.white
+          ),
+        ),
         actions: [
           IconButton(
             onPressed: _openPlayerSettings,

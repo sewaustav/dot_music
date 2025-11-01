@@ -28,6 +28,7 @@ class PlayerLogic extends ChangeNotifier {
   List<Map<String, dynamic>> _songs = [];
   int currentSongIndex = 0;
   int playbackCount = 0;
+  int trackId = 0;
   Duration currentPosition = Duration.zero;
   Duration totalDuration = Duration.zero;
 
@@ -58,8 +59,13 @@ class PlayerLogic extends ChangeNotifier {
     _songs = await _getSongs();
     songs = queue.makeQueue(_songs, initialIndex);
     currentSongIndex = 0;
+
     if (playlist != 0) {
       updateCount(songs[currentSongIndex]["track_id"]);
+    } else if (playlist == 0) {
+      logger.i(songs[currentSongIndex]["path"]);
+      trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
+      updateCount(trackId);
     }
 
     audioHandler.onTrackComplete = _handleTrackComplete;
@@ -160,7 +166,11 @@ class PlayerLogic extends ChangeNotifier {
       final database = await db;
       final stat = StatRepository(database);
       await stat.registerPlayback(trackId);
-      playbackCount = await stat.getPlaybackCount(songs[currentSongIndex]["track_id"]);
+      if (playlist != 0) {
+        playbackCount = await stat.getPlaybackCount(songs[currentSongIndex]["track_id"]);
+      } else if (playlist == 0) {
+        playbackCount = await stat.getPlaybackCount(trackId);
+      }
       refreshUI();
       notifyListeners();
       
