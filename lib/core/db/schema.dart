@@ -41,10 +41,33 @@ class Schema {
     );
   ''';
 
+  // new tables 
+  static const String createFavTable = '''
+    CREATE TABLE favorite_songs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      track_id INTEGER NOT NULL,
+
+      FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
+    )
+  ''';
+
+  static const String createBlockTable = '''
+    CREATE TABLE black_list (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      track_id INTEGER NOT NULL,
+      path TEXT,
+
+      FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE,
+      FOREIGN KEY (path) REFERENCES tracks (path) ON DELETE CASCADE
+    )
+  ''';
+
   static List<String> get createTables => [
         createTracksTable,
         createPlaylistsTable,
         createPlaylistTracksTable,
-        createStatTable
+        createStatTable,
+        createFavTable,
+        createBlockTable
       ];
 }

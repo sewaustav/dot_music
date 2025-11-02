@@ -39,4 +39,23 @@ class DbHelper {
 
     return track.first['id'] as int;
   }
+
+  Future<Map<String, dynamic>> getTrackInfoById(int trackId) async {
+    final db = await _db;
+
+    final track = await db.rawQuery(
+      '''SELECT title, artist, path FROM tracks WHERE id = ?''',
+      [trackId]
+    );
+
+    final row = track.first;
+
+    return {
+      'id': trackId,
+      'title': row['title'] ?? '',
+      'artist': row['artist'] ?? '',
+      'path': row['path'] ?? '',
+    };
+  }
+
 }

@@ -161,9 +161,9 @@ class _PlayerPageState extends State<PlayerPage> {
 
                     PlayerActionsRow(
                       onOpenPlaylist: _openPlaylistView,
-                      onFavorite: _addToFavorites,
                       onDelete: _removeFromPlaylist,
                       onEdit: _editTrackInfo,
+                      trackId: _logic.trackId,
                     ),
                   ],
                 ),
@@ -208,7 +208,6 @@ class _PlayerPageState extends State<PlayerPage> {
       ),
     );
   }
-  void _addToFavorites() {}
   void _removeFromPlaylist() {}
   void _editTrackInfo() {}
   void _openPlayerSettings() {}
