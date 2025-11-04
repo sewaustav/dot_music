@@ -1,7 +1,6 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 class ListOfSongFromPlaylistControl extends StatelessWidget {
   const ListOfSongFromPlaylistControl({

@@ -81,7 +81,7 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
                     // TODO: Play song
                   },
                   onRemove: () async {
-                    await FavaroriteService(trackId: song['id']).deleteFromFav();
+                    await FavaroriteService().deleteFromFav(song['id']);
                     await _loadSongs();
                     setState(() {});
                   },

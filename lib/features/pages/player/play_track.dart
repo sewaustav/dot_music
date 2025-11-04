@@ -5,6 +5,7 @@ import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/pages/player/ui_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:dot_music/design/colors.dart';
+import 'package:go_router/go_router.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({
@@ -108,6 +109,16 @@ class _PlayerPageState extends State<PlayerPage> {
       
       appBar: AppBar(
         backgroundColor: primary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (widget.playlist == 0) {
+              context.go('/list');
+            } else {
+              context.go('/playlists', extra: widget.playlist);
+            }
+          },
+        ),
         title: Text(_logic.currentTitle, style: 
           TextStyle(
             color: Colors.white

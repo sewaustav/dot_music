@@ -260,17 +260,17 @@ class _FavoriteButtonState extends State<FavoriteButton> {
   }
 
   Future<void> _checkFavorite() async {
-    final serv = FavaroriteService(trackId: widget.trackId);
-    final fav = await serv.isFavorite();
+    final serv = FavaroriteService();
+    final fav = await serv.isFavorite(widget.trackId);
     setState(() => _isFavorite = fav);
   }
 
   Future<void> _toggleFavorite() async {
-    final serv = FavaroriteService(trackId: widget.trackId);
+    final serv = FavaroriteService();
     if (_isFavorite) {
-      await serv.deleteFromFav();
+      await serv.deleteFromFav(widget.trackId);
     } else {
-      await serv.addTrackToFav();
+      await serv.addTrackToFav(widget.trackId);
     }
     setState(() => _isFavorite = !_isFavorite);
   }

@@ -4,15 +4,10 @@ import 'package:sqflite/sqflite.dart';
 
 class FavaroriteService {
 
-  final int? trackId;
-
-  const FavaroriteService({
-    this.trackId
-  });
 
   Future<Database> get _db async => await DatabaseHelper().db;
 
-  Future<void> addTrackToFav() async {
+  Future<void> addTrackToFav(int trackId) async {
     final db = await _db;
 
     await db.rawInsert(
@@ -21,7 +16,7 @@ class FavaroriteService {
     );
   }
 
-  Future<void> deleteFromFav() async {
+  Future<void> deleteFromFav(int trackId) async {
     logger.i("DELETE FROM FAV $trackId");
     final db = await _db;
 
@@ -31,7 +26,7 @@ class FavaroriteService {
     );
   }
 
-  Future<bool> isFavorite() async {
+  Future<bool> isFavorite(int trackId) async {
     final db = await _db;
 
     final res = await db.rawQuery(
