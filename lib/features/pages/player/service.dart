@@ -254,6 +254,16 @@ class PlayerLogic extends ChangeNotifier {
     await _playTrack();
   }
 
+  Future<void> playSongByIndex(int nextIndex) async {
+    await audioHandler.stop();
+    currentSongIndex = nextIndex;
+    await _updateCurrentTrackCount();
+    isPlaying = true;
+    refreshUI();
+    notifyListeners();
+    await _playTrack();
+  }
+
   Future<void> playRandomSong() async {
     if (songs.isEmpty) return;
 

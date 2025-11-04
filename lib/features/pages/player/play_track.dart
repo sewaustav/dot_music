@@ -205,6 +205,7 @@ class _PlayerPageState extends State<PlayerPage> {
       builder: (context) => ListOfSongFromPlaylistControl(
         songs: _logic.songs,
         currentIndex: _logic.currentSongIndex,
+        playTrackByList: _logic.playSongByIndex,
       ),
     );
   }
