@@ -1,6 +1,5 @@
 // --------------------------- Supporting Widgets --------------------------------
 
-import 'package:dot_music/core/db/fav_service.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
 
@@ -199,13 +198,16 @@ class PlayerActionsRow extends StatelessWidget {
     required this.onOpenPlaylist,
     required this.onDelete,
     required this.onEdit,
-    required this.trackId,
+    required this.isFavorite,
+    required this.toggleFavorite
   });
 
   final VoidCallback onOpenPlaylist;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
-  final int trackId;
+  final VoidCallback toggleFavorite;
+  final bool isFavorite;
+
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +223,12 @@ class PlayerActionsRow extends StatelessWidget {
             color: Colors.white70,
           ),
           
-          FavoriteButton(trackId: trackId),
+          IconButton(
+            onPressed: toggleFavorite,
+            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+            tooltip: 'Favorite',
+            color: Colors.white70,
+          ),
 
           IconButton(
             onPressed: onDelete,
@@ -241,49 +248,3 @@ class PlayerActionsRow extends StatelessWidget {
   }
 }
 
-class FavoriteButton extends StatefulWidget {
-  final int trackId;
-
-  const FavoriteButton({super.key, required this.trackId});
-
-  @override
-  State<FavoriteButton> createState() => _FavoriteButtonState();
-}
-
-class _FavoriteButtonState extends State<FavoriteButton> {
-  bool _isFavorite = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkFavorite();
-  }
-
-  Future<void> _checkFavorite() async {
-    final serv = FavaroriteService();
-    final fav = await serv.isFavorite(widget.trackId);
-    setState(() => _isFavorite = fav);
-  }
-
-  Future<void> _toggleFavorite() async {
-    final serv = FavaroriteService();
-    if (_isFavorite) {
-      await serv.deleteFromFav(widget.trackId);
-    } else {
-      await serv.addTrackToFav(widget.trackId);
-    }
-    setState(() => _isFavorite = !_isFavorite);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: _toggleFavorite,
-      icon: Icon(
-        _isFavorite ? Icons.favorite : Icons.favorite_border,
-        color: _isFavorite ? Colors.redAccent : Colors.white70,
-      ),
-      tooltip: 'Favorite',
-    );
-  }
-}

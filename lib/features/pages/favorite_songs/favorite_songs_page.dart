@@ -23,7 +23,7 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   
   Future<void> _loadSongs() async { 
     try {
-      List<int> songIDs = await FavaroriteService().getAllSongs(); 
+      List<int> songIDs = await FavoriteService().getAllSongs(); 
       List<Map<String, dynamic>> songs = [];
       for (int songId in songIDs) { 
         logger.i("ID - $songId");
@@ -81,7 +81,7 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
                     // TODO: Play song
                   },
                   onRemove: () async {
-                    await FavaroriteService().deleteFromFav(song['id']);
+                    await FavoriteService().deleteFromFav(song['id']);
                     await _loadSongs();
                     setState(() {});
                   },

@@ -6,6 +6,7 @@ import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:dot_music/core/db/db_helper.dart';
+import 'package:dot_music/core/db/fav_service.dart';
 import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
@@ -33,7 +34,9 @@ class PlayerLogic extends ChangeNotifier {
   Duration totalDuration = Duration.zero;
 
   bool isPlaying = true;
+  bool isFavorite = false;
   RepeatMode repeatMode = RepeatMode.off;
+
 
   final PlaylistView pv = PlaylistView();
   final DbHelper _dbHelper = DbHelper();
@@ -60,12 +63,16 @@ class PlayerLogic extends ChangeNotifier {
     songs = queue.makeQueue(_songs, initialIndex);
     currentSongIndex = 0;
 
+    
+
     if (playlist != 0) {
       updateCount(songs[currentSongIndex]["track_id"]);
+      isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
     } else if (playlist == 0) {
       logger.i(songs[currentSongIndex]["path"]);
       trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
       updateCount(trackId);
+      isFavorite = await updateFavoriteStatus(trackId);
     }
 
     audioHandler.onTrackComplete = _handleTrackComplete;
@@ -160,6 +167,41 @@ class PlayerLogic extends ChangeNotifier {
     }
   }
 
+  Future<bool> updateFavoriteStatus(int trackId) async {
+    logger.i("${songs[currentSongIndex]["track_id"]}");
+    isFavorite = await FavoriteService().isFavorite(trackId);
+    notifyListeners(); 
+    return isFavorite;
+  }
+
+  Future<void> toggleFavorite() async {
+    int _trackId = 0;
+    if (playlist != 0) {
+      _trackId = songs[currentSongIndex]["track_id"];
+    } else if (playlist == 0) {
+      _trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
+    }
+    logger.i("Toggling favorite for track: $_trackId");
+    
+    isFavorite = !isFavorite;
+    notifyListeners(); 
+    
+    final serv = FavoriteService();
+    try {
+        if (isFavorite) {
+            await serv.addTrackToFav(_trackId);
+        } else {
+            await serv.deleteFromFav(_trackId);
+        }
+        logger.i("Favorite toggled successfully");
+    } catch (e) {
+        // Если ошибка - откатываем
+        isFavorite = !isFavorite;
+        notifyListeners();
+        logger.e("Failed to toggle favorite", error: e);
+    }
+}
+
   Future<Database> get db async => _db ??= await DatabaseHelper().db;
 
   Future<void> updateCount(int trackId) async {
@@ -227,6 +269,12 @@ class PlayerLogic extends ChangeNotifier {
 
     await _updateCurrentTrackCount();
     isPlaying = true;
+    if (playlist != 0) {
+      isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
+    } else {
+      trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
+      isFavorite = await updateFavoriteStatus(trackId);
+    }
     refreshBtn(isPlaying);
     refreshUI();
     notifyListeners();
@@ -248,6 +296,12 @@ class PlayerLogic extends ChangeNotifier {
     currentSongIndex = prevIndex;
     await _updateCurrentTrackCount();
     isPlaying = true;
+    if (playlist != 0) {
+      isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
+    } else {
+      trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
+      isFavorite = await updateFavoriteStatus(trackId);
+    }
     refreshBtn(isPlaying);
     refreshUI();
     notifyListeners();

@@ -2,7 +2,7 @@ import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:sqflite/sqflite.dart';
 
-class FavaroriteService {
+class FavoriteService {
 
 
   Future<Database> get _db async => await DatabaseHelper().db;

@@ -70,13 +70,11 @@ class _PlayerPageState extends State<PlayerPage> {
     });
   }
 
-  // Этот метод вызывается когда PlayerLogic вызывает notifyListeners()
   void _onLogicUpdate() {
     if (!mounted) return;
     
     setState(() {
       isPlaying = _logic.isPlaying;
-      // Обновляем все состояния из _logic
     });
   }
 
@@ -174,7 +172,8 @@ class _PlayerPageState extends State<PlayerPage> {
                       onOpenPlaylist: _openPlaylistView,
                       onDelete: _removeFromPlaylist,
                       onEdit: _editTrackInfo,
-                      trackId: _logic.trackId,
+                      isFavorite: _logic.isFavorite,
+                      toggleFavorite: _logic.toggleFavorite,
                     ),
                   ],
                 ),
@@ -220,6 +219,7 @@ class _PlayerPageState extends State<PlayerPage> {
       ),
     );
   }
+
   void _removeFromPlaylist() {}
   void _editTrackInfo() {}
   void _openPlayerSettings() {}
