@@ -22,4 +22,13 @@ class BlockService {
       [trackId]
     );
   }
+
+  Future<bool> isBlocked(int trackId) async {
+    final db = await _db;
+    final res = await db.rawQuery(
+      '''SELECT 1 FROM black_list WHERE track_id = ?''',
+      [trackId]);
+
+    return res.first.isNotEmpty;
+  }
 }

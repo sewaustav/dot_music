@@ -62,7 +62,7 @@ class PlayerLogic extends ChangeNotifier {
     songs = queue.makeQueue(_songs, initialIndex);
     currentSongIndex = 0;
 
-    logger.i(songs);
+    logger.i(songs[currentSongIndex]);
 
     updateCount(songs[currentSongIndex]["track_id"]);
     isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);

@@ -1,9 +1,11 @@
 import 'package:dot_music/core/config.dart';
+import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:dot_music/features/pages/song_list/music_service.dart';
 import 'package:dot_music/features/pages/song_list/playlist_dialog.dart';
 import 'package:dot_music/features/pages/song_list/ui.dart';
+import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -117,8 +119,11 @@ class _SongListPageState extends State<SongListPage> {
     }
   }
 
-  void _handleDelete(SongModel song) {
-    logger.i('Удаление трека (заглушка): ${song.title}');
+  Future<void> _handleDelete(SongModel song) async {
+    final int trackId = await SongService().getSongIdByPath(song.data);
+    await DeleteService().addToBlackList(trackId);
+    logger.i('Удаление трека : ${song.title}');
+
   }
 
   Widget _buildContent() {
