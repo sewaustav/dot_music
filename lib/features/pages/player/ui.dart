@@ -194,17 +194,20 @@ class PlayerControls extends StatelessWidget {
 
 class PlayerActionsRow extends StatelessWidget {
   const PlayerActionsRow({
-    super.key, 
-    required this.onOpenPlaylist, 
-    required this.onFavorite, 
-    required this.onDelete, 
-    required this.onEdit
+    super.key,
+    required this.onOpenPlaylist,
+    required this.onDelete,
+    required this.onEdit,
+    required this.isFavorite,
+    required this.toggleFavorite
   });
 
   final VoidCallback onOpenPlaylist;
-  final VoidCallback onFavorite;
   final VoidCallback onDelete;
   final VoidCallback onEdit;
+  final VoidCallback toggleFavorite;
+  final bool isFavorite;
+
 
   @override
   Widget build(BuildContext context) {
@@ -219,12 +222,14 @@ class PlayerActionsRow extends StatelessWidget {
             tooltip: 'Playlist',
             color: Colors.white70,
           ),
+          
           IconButton(
-            onPressed: onFavorite,
-            icon: const Icon(Icons.favorite_border),
+            onPressed: toggleFavorite,
+            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
             tooltip: 'Favorite',
             color: Colors.white70,
           ),
+
           IconButton(
             onPressed: onDelete,
             icon: const Icon(Icons.delete_outline),
@@ -242,3 +247,4 @@ class PlayerActionsRow extends StatelessWidget {
     );
   }
 }
+

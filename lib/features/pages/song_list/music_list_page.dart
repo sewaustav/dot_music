@@ -162,6 +162,10 @@ class _SongListPageState extends State<SongListPage> {
       appBar: AppBar(
         backgroundColor: primary,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => context.go("/")
+        ),
         title: const Text(
           'Музыкальные треки',
           style: TextStyle(

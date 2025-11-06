@@ -44,20 +44,16 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      // 1️⃣ Инициализация плагина с настоящим запросом разрешений
       await _trackLoader.initializePlugin();
 
-      // 2️⃣ Загружаем треки
       final loadedSongs = await _trackLoader.loadSongs();
       if (!mounted) return;
 
       setState(() => songs = loadedSongs);
 
-      // 3️⃣ Добавляем треки в БД безопасно
       setState(() => _loadingText = "Добавляем треки в базу...");
       await _trackLoader.addMissingSongsToDb(SongService(), loadedSongs);
 
-      // Проверяем, есть ли ошибки
       if (_trackLoader.error.isNotEmpty) {
         setState(() => _errorText = _trackLoader.error);
       }
@@ -101,7 +97,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          // Форма плейлиста
           if (_showForm)
             _PlaylistFormOverlay(
               formKey: _formKey,
@@ -115,7 +110,6 @@ class _HomePageState extends State<HomePage> {
               },
             ),
 
-          // 🔥 Оверлей загрузки или ошибки
           if (_isLoading || _errorText != null)
             Container(
               color: Colors.black.withOpacity(0.8),
@@ -515,6 +509,34 @@ class _HomePageUIState extends State<HomePageUI> {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 16),
+
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: secondary,
+                      foregroundColor: textColor,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 16,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                    onPressed: () => context.push("/fav"), 
+                    icon: const Icon(Icons.favorite_rounded, size: 24),
+                    label: const Text(
+                      "Favorites",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+
                 ],
               ),
             ),

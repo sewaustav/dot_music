@@ -160,6 +160,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
       backgroundColor: background,
       appBar: AppBar(
         backgroundColor: primary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            context.go("/listpl");
+          },
+        ),
         elevation: 0,
         title: const Text(
           'Playlist',

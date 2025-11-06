@@ -1,3 +1,4 @@
+import 'package:dot_music/features/pages/favorite_songs/favorite_songs_page.dart';
 import 'package:dot_music/features/pages/player/play_track.dart';
 import 'package:dot_music/features/pages/playlist/playlist.dart';
 import 'package:dot_music/features/pages/playlist/playlist_list.dart';
@@ -66,6 +67,10 @@ final router = GoRouter(
             final year = state.extra as int;
             return AnnualStatPage(year: year);
           }
+        ),
+        GoRoute(
+          path: "/fav",
+          builder: (context, state) => const FavoriteSongsPage()
         ),
 
     ]

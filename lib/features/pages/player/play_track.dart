@@ -5,6 +5,7 @@ import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/pages/player/ui_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:dot_music/design/colors.dart';
+import 'package:go_router/go_router.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({
@@ -69,13 +70,11 @@ class _PlayerPageState extends State<PlayerPage> {
     });
   }
 
-  // Этот метод вызывается когда PlayerLogic вызывает notifyListeners()
   void _onLogicUpdate() {
     if (!mounted) return;
     
     setState(() {
       isPlaying = _logic.isPlaying;
-      // Обновляем все состояния из _logic
     });
   }
 
@@ -108,6 +107,18 @@ class _PlayerPageState extends State<PlayerPage> {
       
       appBar: AppBar(
         backgroundColor: primary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (widget.playlist == 0) {
+              context.go('/list');
+            } else if (widget.playlist == -1) {
+              context.go('/fav');
+            } else {
+              context.go('/playlists', extra: widget.playlist);
+            }
+          },
+        ),
         title: Text(_logic.currentTitle, style: 
           TextStyle(
             color: Colors.white
@@ -161,9 +172,10 @@ class _PlayerPageState extends State<PlayerPage> {
 
                     PlayerActionsRow(
                       onOpenPlaylist: _openPlaylistView,
-                      onFavorite: _addToFavorites,
                       onDelete: _removeFromPlaylist,
                       onEdit: _editTrackInfo,
+                      isFavorite: _logic.isFavorite,
+                      toggleFavorite: _logic.toggleFavorite,
                     ),
                   ],
                 ),
@@ -205,10 +217,11 @@ class _PlayerPageState extends State<PlayerPage> {
       builder: (context) => ListOfSongFromPlaylistControl(
         songs: _logic.songs,
         currentIndex: _logic.currentSongIndex,
+        playTrackByList: _logic.playSongByIndex,
       ),
     );
   }
-  void _addToFavorites() {}
+
   void _removeFromPlaylist() {}
   void _editTrackInfo() {}
   void _openPlayerSettings() {}

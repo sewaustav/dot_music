@@ -1,3 +1,4 @@
+import 'package:dot_music/core/config.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
 
@@ -6,21 +7,22 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
     super.key,
     required this.songs,
     required this.currentIndex,
+    required this.playTrackByList
   });
 
   final List<Map<String, dynamic>> songs;
   final int currentIndex;
+  final Future<void> Function(int) playTrackByList;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // Тап вне листа — закрываем
       onTap: () => Navigator.pop(context),
       behavior: HitTestBehavior.opaque,
       child: DraggableScrollableSheet(
         initialChildSize: 0.5,
-        minChildSize: 0.1,  // ФИКС: можно свайпать вниз!
-        maxChildSize: 0.9,  // ФИКС: можно тянуть вверх
+        minChildSize: 0.1,
+        maxChildSize: 0.9,  
         expand: false,
         builder: (context, scrollController) {
           return Container(
@@ -33,9 +35,9 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
             ),
             child: Column(
               children: [
-                // === ХЕДЕР С ПОЛОСОЧКОЙ ===
+
                 GestureDetector(
-                  // Свайп вниз — закрываем
+
                   onVerticalDragUpdate: (details) {
                     if (details.primaryDelta! > 10) {
                       Navigator.pop(context);
@@ -67,10 +69,9 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
                   ),
                 ),
 
-                // === СПИСОК ПЕСЕН ===
                 Expanded(
                   child: ListView.builder(
-                    // ФИКС: отключаем встроенный скролл DraggableSheet
+
                     physics: const ClampingScrollPhysics(),
                     controller: scrollController,
                     padding: EdgeInsets.zero,
@@ -79,11 +80,13 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
                       final song = songs[index];
                       final isCurrent = index == currentIndex;
 
-                      return Material( // ФИКС: InkWell → Material
+                      return Material( 
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () {
-                            // TODO: play song
+                            logger.i("$song, $index");
+                            playTrackByList(index);
+                            Navigator.pop(context);
                           },
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -1,3 +1,4 @@
+import 'package:dot_music/core/router.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -47,6 +48,12 @@ class _PlaylistPageState extends State<PlaylistsListPage> {
       backgroundColor: background,
       appBar: AppBar(
         backgroundColor: primary,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            router.go("/");
+          },
+        ),
         elevation: 0,
         title: const Text(
           'Playlists',
