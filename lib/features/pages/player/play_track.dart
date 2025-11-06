@@ -112,6 +112,8 @@ class _PlayerPageState extends State<PlayerPage> {
           onPressed: () {
             if (widget.playlist == 0) {
               context.go('/list');
+            } else if (widget.playlist == -1) {
+              context.go('/fav');
             } else {
               context.go('/playlists', extra: widget.playlist);
             }

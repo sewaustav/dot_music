@@ -51,7 +51,7 @@ class DbHelper {
     final row = track.first;
 
     return {
-      'id': trackId,
+      'track_id': trackId,
       'title': row['title'] ?? '',
       'artist': row['artist'] ?? '',
       'path': row['path'] ?? '',

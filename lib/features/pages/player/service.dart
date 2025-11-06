@@ -39,7 +39,6 @@ class PlayerLogic extends ChangeNotifier {
 
 
   final PlaylistView pv = PlaylistView();
-  final DbHelper _dbHelper = DbHelper();
   final queue = QueueService();
   Database? _db;
 
@@ -63,17 +62,10 @@ class PlayerLogic extends ChangeNotifier {
     songs = queue.makeQueue(_songs, initialIndex);
     currentSongIndex = 0;
 
-    
+    logger.i(songs);
 
-    if (playlist != 0) {
-      updateCount(songs[currentSongIndex]["track_id"]);
-      isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
-    } else if (playlist == 0) {
-      logger.i(songs[currentSongIndex]["path"]);
-      trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
-      updateCount(trackId);
-      isFavorite = await updateFavoriteStatus(trackId);
-    }
+    updateCount(songs[currentSongIndex]["track_id"]);
+    isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
 
     audioHandler.onTrackComplete = _handleTrackComplete;
       
@@ -143,17 +135,36 @@ class PlayerLogic extends ChangeNotifier {
                 song.title != null &&
                 song.title.isNotEmpty)
             .toList();
+        
+        final result = await Future.wait(
+          filtered.map((s) async {
+            final trackId = await SongService().getSongIdByPath(s.data);
+            return {
+              'id': s.id,
+              'path': s.data,
+              'title': s.title,
+              'artist': s.artist,
+              'track_id': trackId, 
+            };
+          }),
+        );
 
-        return filtered.map<Map<String, dynamic>>((s) {
-          return {
-            'id': s.id,
-            'path': s.data,
-            'title': s.title,
-            'artist': s.artist,
-          };
-        }).toList();
+        return result;
       } catch (e, st) {
         logger.e('Ошибка загрузки песен устройства', error: e, stackTrace: st);
+        return [];
+      }
+    } else if (playlist == -1) {
+      try {
+        List<int> songIDs = await FavoriteService().getAllSongs(); 
+        List<Map<String, dynamic>> songsss = [];
+        for (int songId in songIDs) { 
+          final songInfo = await DbHelper().getTrackInfoById(songId);
+          songsss.add(songInfo); 
+        }
+        return songsss;
+      } catch (e) {
+        logger.e("Error loading songs: $e");
         return [];
       }
     } else {
@@ -175,12 +186,7 @@ class PlayerLogic extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite() async {
-    int _trackId = 0;
-    if (playlist != 0) {
-      _trackId = songs[currentSongIndex]["track_id"];
-    } else if (playlist == 0) {
-      _trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
-    }
+    int _trackId = songs[currentSongIndex]["track_id"];
     logger.i("Toggling favorite for track: $_trackId");
     
     isFavorite = !isFavorite;
@@ -209,11 +215,8 @@ class PlayerLogic extends ChangeNotifier {
       final database = await db;
       final stat = StatRepository(database);
       await stat.registerPlayback(trackId);
-      if (playlist != 0) {
-        playbackCount = await stat.getPlaybackCount(songs[currentSongIndex]["track_id"]);
-      } else if (playlist == 0) {
-        playbackCount = await stat.getPlaybackCount(trackId);
-      }
+      playbackCount = await stat.getPlaybackCount(songs[currentSongIndex]["track_id"]);
+      
       refreshUI();
       notifyListeners();
       
@@ -224,17 +227,7 @@ class PlayerLogic extends ChangeNotifier {
 
   Future<void> _updateCurrentTrackCount() async {
     if (songs.isNotEmpty && currentSongIndex < songs.length) {
-      int songId;
-      if (playlist == 0) {
-        songId = trackId;
-        try {
-          songId = await _dbHelper.getTrackIdByPath(songs[currentSongIndex]["path"]);
-        } catch (e) {
-          logger.e('Error getting track id by path', error: e);
-        }
-      } else {
-        songId = songs[currentSongIndex]['track_id'];
-      }
+      int songId = songs[currentSongIndex]['track_id'];
       await updateCount(songId);
     }
   }
@@ -256,6 +249,8 @@ class PlayerLogic extends ChangeNotifier {
   }
 
   Future<void> playNextSong() async {
+
+    logger.i('${songs[currentSongIndex]["track_id"]}');
     if (songs.isEmpty) return;
 
     int nextIndex;
@@ -269,12 +264,7 @@ class PlayerLogic extends ChangeNotifier {
 
     await _updateCurrentTrackCount();
     isPlaying = true;
-    if (playlist != 0) {
-      isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
-    } else {
-      trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
-      isFavorite = await updateFavoriteStatus(trackId);
-    }
+    isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
     refreshBtn(isPlaying);
     refreshUI();
     notifyListeners();
@@ -296,12 +286,7 @@ class PlayerLogic extends ChangeNotifier {
     currentSongIndex = prevIndex;
     await _updateCurrentTrackCount();
     isPlaying = true;
-    if (playlist != 0) {
-      isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
-    } else {
-      trackId = await SongService().getSongIdByPath(songs[currentSongIndex]["path"]);
-      isFavorite = await updateFavoriteStatus(trackId);
-    }
+    isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
     refreshBtn(isPlaying);
     refreshUI();
     notifyListeners();

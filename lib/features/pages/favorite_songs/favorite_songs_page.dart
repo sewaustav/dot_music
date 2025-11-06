@@ -4,6 +4,7 @@ import 'package:dot_music/core/db/fav_service.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class FavoriteSongsPage extends StatefulWidget {
   const FavoriteSongsPage({super.key});
@@ -26,13 +27,13 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
       List<int> songIDs = await FavoriteService().getAllSongs(); 
       List<Map<String, dynamic>> songs = [];
       for (int songId in songIDs) { 
-        logger.i("ID - $songId");
         final songInfo = await DbHelper().getTrackInfoById(songId);
         songs.add(songInfo); 
       }
       setState(() {
         _songs = songs;
       });
+      logger.i(_songs);
     } catch (e) {
       logger.e("Error loading songs: $e");
     }
@@ -45,6 +46,12 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
       appBar: AppBar(
         backgroundColor: primary,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            context.go("/");
+          },
+        ),
         title: const Text(
           'Favorite Songs',
           style: TextStyle(
@@ -78,10 +85,15 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
                   title: song['title'] ?? 'Untitled',
                   artist: song['artist'] ?? 'Unknown Artist',
                   onPlay: () {
-                    // TODO: Play song
+                    context.push("/player", extra: {
+                    "songData": song["path"],
+                    "index": index,
+                    "playlist": -1,
+                    "fromMiniPlayer": false
+                  });
                   },
                   onRemove: () async {
-                    await FavoriteService().deleteFromFav(song['id']);
+                    await FavoriteService().deleteFromFav(song['track_id']);
                     await _loadSongs();
                     setState(() {});
                   },
