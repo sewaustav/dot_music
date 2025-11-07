@@ -11,6 +11,7 @@ import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
 import 'package:dot_music/features/queue/queue.dart';
+import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:sqflite/sqflite.dart';
@@ -119,6 +120,7 @@ class PlayerLogic extends ChangeNotifier {
 
   Future<List<Map<String, dynamic>>> _getSongs() async {
     if (playlist == 0) {
+      // TODO: refactor
       try {
         final raw = await _audioQuery.querySongs(
           sortType: SongSortType.TITLE,
@@ -201,12 +203,20 @@ class PlayerLogic extends ChangeNotifier {
         }
         logger.i("Favorite toggled successfully");
     } catch (e) {
-        // Если ошибка - откатываем
         isFavorite = !isFavorite;
         notifyListeners();
         logger.e("Failed to toggle favorite", error: e);
     }
-}
+  }
+
+  Future<void> removeTrack() async {
+    int trackId = songs[currentSongIndex]["track_id"];
+    if (playlist == 0) {
+      await DeleteService().addToBlackList(trackId);
+    } else {
+      
+    }
+  }
 
   Future<Database> get db async => _db ??= await DatabaseHelper().db;
 

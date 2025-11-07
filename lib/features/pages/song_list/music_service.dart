@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/features/music_library.dart';
+import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -58,7 +59,11 @@ class SongListController {
     
     try {
       final loadedSongs = await _trackLoader.loadSongs();
-      _songs = loadedSongs.where(_isValidSong).toList();
+      for (var song in loadedSongs) {
+        if (await _isValidSong(song)) {
+          _songs.add(song);
+        }
+      }
       
       final count = await _playlistView.getCountTrack();
       _trackCount = count;
@@ -107,13 +112,16 @@ class SongListController {
     _isLoading = loading;
   }
 
-  bool _isValidSong(SongModel song) {
+  Future<bool> _isValidSong(SongModel song) async {
+    final trackId = await SongService().getSongIdByPath(song.data);
+    bool isBlackout = await DeleteService().isBlocked(trackId);
     // ignore: unnecessary_null_comparison
     return song.data != null && 
            song.data.isNotEmpty && 
            // ignore: unnecessary_null_comparison
            song.title != null && 
-           song.title.isNotEmpty;
+           song.title.isNotEmpty &&
+           !isBlackout;
   }
 
   Future<bool> _isAndroid13OrHigher() async {

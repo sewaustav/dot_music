@@ -1,5 +1,6 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:dot_music/features/pages/song_list/music_service.dart';
@@ -120,7 +121,9 @@ class _SongListPageState extends State<SongListPage> {
   }
 
   Future<void> _handleDelete(SongModel song) async {
+    logger.i('Удаление трека : ${song.title}');
     final int trackId = await SongService().getSongIdByPath(song.data);
+    logger.i(await DbHelper().getTrackInfoById(trackId));
     await DeleteService().addToBlackList(trackId);
     logger.i('Удаление трека : ${song.title}');
 
