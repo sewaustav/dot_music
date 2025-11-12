@@ -224,7 +224,16 @@ class PlayerLogic extends ChangeNotifier {
       currentSongIndex = 0; 
     }
     else if (repeatMode == RepeatMode.off && previousMode != RepeatMode.off) {
-      songs = queue.makeQueue(_songs, currentSongIndex);
+      final currentTrackId = songs[currentSongIndex]['track_id'];
+      final originalIndex = _songs.indexWhere((song) => song['track_id'] == currentTrackId);
+      
+      if (originalIndex != -1) {
+        songs = queue.makeQueue(_songs, originalIndex);
+        currentSongIndex = 0;
+      } else {
+        songs = List<Map<String, dynamic>>.from(_songs);
+        currentSongIndex = 0;
+      }
     }
 
     refreshUI();

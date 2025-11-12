@@ -63,27 +63,35 @@ class TrackLoaderService {
     return songs;
   }
 
-  Future<void> addMissingSongsToDb(SongService ss, List<SongModel> songs) async {
-    int addedCount = 0;
+  Future<void> addMissingSongsToDbWithProgress(
+    SongService songService,
+    List<SongModel> songs,
+    Function(int loaded, int total) onProgress,
+  ) async {
+    try {
+      final total = songs.length;
+      int loaded = 0;
 
-    for (final song in songs) {
-      try {
-        final exists = await ss.getSongByPath(song.data);
-        if (!exists) {
-          await ss.addSongToDb(song.data);
-          addedCount++;
-          // logger.i('Добавлен трек в БД: ${song.title}');
+      for (final song in songs) {
+        try {
+          final exists = await songService.getSongByPath(song.data);
+          if (!exists) {
+            await songService.addSongToDb(song.data);
+          }
+          loaded++;
+          onProgress(loaded, total);
+        } catch (e) {
+          logger.e('Ошибка добавления трека: ${song.title}', error: e);
+          // Продолжаем даже при ошибке
+          loaded++;
+          onProgress(loaded, total);
         }
-      } catch (e, st) {
-        error = e.toString();
-        logger.e('Ошибка при добавлении трека ${song.title}', error: e, stackTrace: st);
       }
-    }
-    isAddedBd = true;
-    if (addedCount > 0) {
-      logger.i('Добавлено новых треков в БД: $addedCount');
-    } else {
-      logger.i('Все треки уже есть в БД');
+
+      logger.i('Добавлено треков: $loaded из $total');
+    } catch (e, st) {
+      logger.e('Ошибка при добавлении треков в БД', error: e, stackTrace: st);
+      rethrow;
     }
   }
 

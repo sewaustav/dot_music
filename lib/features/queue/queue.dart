@@ -1,3 +1,5 @@
+import 'package:dot_music/core/config.dart';
+
 class QueueService {
 
 
@@ -6,6 +8,7 @@ class QueueService {
     int index
   ) {
 
+    logger.i("Index - $index");
     List<Map<String, dynamic>> queue = List<Map<String, dynamic>>.from(songs);
 
     var songsBefore = queue.sublist(0, index);

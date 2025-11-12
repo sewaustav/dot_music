@@ -76,18 +76,18 @@ class PlaylistView {
 
     final result = await db.rawQuery(
       """SELECT 
-    pt.playlist_id,
-    pt.added_at,
-    t.id AS track_id,
-    t.title,
-    t.artist,
-    t.path,
-    t.playback_count,
-    t.created_at
-FROM playlist_tracks pt
-JOIN tracks t ON t.id = pt.track_id
-LEFT JOIN black_list b ON b.track_id = t.id
-WHERE pt.playlist_id = ? AND b.track_id IS NULL;
+          pt.playlist_id,
+          pt.added_at,
+          t.id AS track_id,
+          t.title,
+          t.artist,
+          t.path,
+          t.playback_count,
+          t.created_at
+      FROM playlist_tracks pt
+      JOIN tracks t ON t.id = pt.track_id
+      LEFT JOIN black_list b ON b.track_id = t.id
+      WHERE pt.playlist_id = ? AND b.track_id IS NULL;
 
         """,
       [playlist]
