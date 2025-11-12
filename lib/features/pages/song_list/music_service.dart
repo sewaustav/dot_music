@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/features/music_library.dart';
 import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -13,7 +14,6 @@ class SongListController {
   final PlaylistService _playlistService = PlaylistService();
 
   List<SongModel> _songs = [];
-  List<SongModel> get songs => _songs;
   
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -54,21 +54,19 @@ class SongListController {
     }
   }
 
-  Future<void> loadSongs() async {
+  Future<List<Map<String, dynamic>>> loadSongs() async {
     _setLoading(true);
+    _songs.clear(); 
     
     try {
-      final loadedSongs = await _trackLoader.loadSongs();
-      for (var song in loadedSongs) {
-        if (await _isValidSong(song)) {
-          _songs.add(song);
-        }
-      }
+      final loadedSongs = await DbHelper().getAllTracks();
       
       final count = await _playlistView.getCountTrack();
       _trackCount = count;
-      
       logger.i('✅ Успешно загружено ${_songs.length} треков');
+      
+      return loadedSongs; 
+      
     } catch (e, st) {
       logger.e('Ошибка загрузки треков', error: e, stackTrace: st);
       rethrow;
@@ -77,17 +75,16 @@ class SongListController {
     }
   }
 
-  Future<void> addSongToPlaylist(String playlistName, SongModel song) async {
+  Future<void> addSongToPlaylist(String playlistName, Map<String, dynamic> song) async {
     try {
-      final songExists = await _songService.getSongByPath(song.data);
+      final songExists = await _songService.getSongByPath(song["path"]);
       
       if (!songExists) {
         logger.i('Трек не найден в БД, добавляем...');
-        await _songService.addSongToDb(song.data);
+        await _songService.addSongToDb(song["path"]);
       }
-      
-      await _playlistService.addToPlaylist(playlistName, song.data);
-      logger.i('Трек "${song.title}" добавлен в плейлист "$playlistName"');
+      await _playlistService.addToPlaylist(playlistName, song["path"]);
+      logger.i('Трек "${song["title"]}" добавлен в плейлист "$playlistName"');
     } catch (e, st) {
       logger.e('Ошибка добавления в плейлист', error: e, stackTrace: st);
       rethrow;

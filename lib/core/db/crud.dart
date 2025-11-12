@@ -47,7 +47,7 @@ class PlaylistService {
   }
 
   // delete from playlist
-  Future<void> deleteFromPlaylist(String playlistId, String trackPath) async {
+  Future<void> deleteFromPlaylist(int playlistId, String trackPath) async {
     final db = await _db;
 
     // final playlistId = await _dbHelper.getPlaylistIdByName(playlistName);
@@ -75,10 +75,21 @@ class PlaylistView {
     final db = await _db;
 
     final result = await db.rawQuery(
-      """SELECT * 
-      FROM playlist_tracks 
-      JOIN tracks ON playlist_tracks.track_id = tracks.id
-      WHERE playlist_tracks.playlist_id = ?""",
+      """SELECT 
+    pt.playlist_id,
+    pt.added_at,
+    t.id AS track_id,
+    t.title,
+    t.artist,
+    t.path,
+    t.playback_count,
+    t.created_at
+FROM playlist_tracks pt
+JOIN tracks t ON t.id = pt.track_id
+LEFT JOIN black_list b ON b.track_id = t.id
+WHERE pt.playlist_id = ? AND b.track_id IS NULL;
+
+        """,
       [playlist]
     );
 
@@ -97,7 +108,12 @@ class PlaylistView {
 
     return await db.rawQuery(
       """
-        SELECT * FROM playlist_tracks WHERE playlist_id = ?
+        SELECT pt.*
+        FROM playlist_tracks pt
+        JOIN tracks t ON t.id = pt.track_id
+        LEFT JOIN black_list b ON b.track_id = t.id
+        WHERE pt.playlist_id = ? AND b.track_id IS NULL;
+
       """,
       [playlist]
     );  
@@ -106,7 +122,12 @@ class PlaylistView {
   Future<int> getCountTrack() async {
     final db = await _db;
     final count =  await db.rawQuery(
-      """SELECT * FROM playlist_tracks"""
+      """SELECT pt.*
+      FROM playlist_tracks pt
+      JOIN tracks t ON t.id = pt.track_id
+      LEFT JOIN black_list b ON b.track_id = t.id
+      WHERE b.track_id IS NULL;
+      """
     );
     return count.length;
   }

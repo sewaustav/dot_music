@@ -120,40 +120,13 @@ class PlayerLogic extends ChangeNotifier {
 
   Future<List<Map<String, dynamic>>> _getSongs() async {
     if (playlist == 0) {
-      // TODO: refactor
       try {
-        final raw = await _audioQuery.querySongs(
-          sortType: SongSortType.TITLE,
-          orderType: OrderType.ASC_OR_SMALLER,
-          uriType: UriType.EXTERNAL,
-        );
-
-        final filtered = raw
-            .where((song) =>
-                // ignore: unnecessary_null_comparison
-                song.data != null &&
-                song.data.isNotEmpty &&
-                // ignore: unnecessary_null_comparison
-                song.title != null &&
-                song.title.isNotEmpty)
-            .toList();
+        final loadedSongs = await DbHelper().getAllTracks();
         
-        final result = await Future.wait(
-          filtered.map((s) async {
-            final trackId = await SongService().getSongIdByPath(s.data);
-            return {
-              'id': s.id,
-              'path': s.data,
-              'title': s.title,
-              'artist': s.artist,
-              'track_id': trackId, 
-            };
-          }),
-        );
-
-        return result;
+        return loadedSongs; 
+        
       } catch (e, st) {
-        logger.e('Ошибка загрузки песен устройства', error: e, stackTrace: st);
+        logger.e('Ошибка загрузки треков', error: e, stackTrace: st);
         return [];
       }
     } else if (playlist == -1) {
@@ -214,7 +187,7 @@ class PlayerLogic extends ChangeNotifier {
     if (playlist == 0) {
       await DeleteService().addToBlackList(trackId);
     } else {
-      
+      await PlaylistService().deleteFromPlaylist(playlist, songs[currentSongIndex]["path"]);
     }
   }
 

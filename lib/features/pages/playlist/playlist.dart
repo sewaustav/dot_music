@@ -35,6 +35,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   void _playSong(Map<String, dynamic> song, int index) {
+    logger.i("${song} -- $index");
     context.push("/player", extra: {
       "songData": song["path"],
       "index": index,
@@ -46,7 +47,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   Future<void> _removeFromPlaylist(Map<String, dynamic> song) async {
     logger.i("${widget.playlist} --- ${song["path"]}");
-    await ps.deleteFromPlaylist(widget.playlist.toString(), song["path"]);
+    await ps.deleteFromPlaylist(widget.playlist, song["path"]);
     setState(() {
       _songs.removeWhere((s) => s['path'] == song['path']);
     });

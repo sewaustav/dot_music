@@ -1,5 +1,6 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class TrackLoaderService {
@@ -36,12 +37,28 @@ class TrackLoaderService {
     await Future.delayed(const Duration(milliseconds: 300));
 
     logger.i('🎶 Загружаем треки...');
-    final songs = await _audioQuery.querySongs(
+    List<SongModel> songs = await _audioQuery.querySongs(
       sortType: SongSortType.TITLE,
       orderType: OrderType.ASC_OR_SMALLER,
       uriType: UriType.EXTERNAL,
     );
 
+    /* List<SongModel> filteredSongs = [];
+
+    for (int index = 0; index < songs.length; index++) {
+      try {
+        final trackId = await SongService().getSongIdByPath(songs[index].data);
+        bool isBlackout = await DeleteService().isBlocked(trackId);
+        if (!isBlackout) {
+          filteredSongs.add(songs[index]);
+        }
+      } catch (e) {
+        logger.i('Ошибка при проверке трека: $e');
+        // filteredSongs.add(songs[index]);
+      }
+    }
+
+    songs = filteredSongs; */
     logger.i('✅ Загружено ${songs.length} треков');
     return songs;
   }
