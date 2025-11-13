@@ -22,4 +22,17 @@ class BlockService {
       [trackId]
     );
   }
+
+  Future<bool> isBlocked(int trackId) async {
+  final db = await _db;
+  
+  final res = await db.rawQuery(
+    '''SELECT COUNT(*) FROM black_list WHERE track_id = ?''',
+    [trackId],
+  );
+
+  int? count = Sqflite.firstIntValue(res);
+
+  return count != null && count > 0;
+  }
 }

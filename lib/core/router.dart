@@ -8,7 +8,7 @@ import 'package:dot_music/features/pages/stat/montly_stat.dart';
 import 'package:dot_music/features/pages/stat/stat_page.dart';
 import 'package:dot_music/features/pages/stat/top_stat.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dot_music/features/pages/home.dart';
+import 'package:dot_music/features/pages/home/home.dart';
 
 
 

@@ -1,3 +1,4 @@
+import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -57,5 +58,30 @@ class DbHelper {
       'path': row['path'] ?? '',
     };
   }
+
+  Future<List<Map<String, dynamic>>> getAllTracks() async {
+  final db = await _db;
+
+  final songs = await db.rawQuery(
+    """SELECT t.* 
+       FROM tracks t
+       WHERE t.id NOT IN (SELECT track_id FROM black_list)
+       ORDER BY t.title;"""
+  );
+
+  final updatedSongs = songs.map((song) {
+    final newSong = Map<String, dynamic>.from(song);
+    if (newSong.containsKey('id')) {
+      newSong['track_id'] = newSong['id'];
+      newSong.remove('id');
+    }
+    return newSong;
+  }).toList();
+
+  logger.i(updatedSongs);
+
+  return updatedSongs;
+}
+
 
 }

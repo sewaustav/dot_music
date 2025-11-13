@@ -11,6 +11,7 @@ import 'package:dot_music/core/db/stat_crud.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
 import 'package:dot_music/features/queue/queue.dart';
+import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:sqflite/sqflite.dart';
@@ -62,7 +63,7 @@ class PlayerLogic extends ChangeNotifier {
     songs = queue.makeQueue(_songs, initialIndex);
     currentSongIndex = 0;
 
-    logger.i(songs);
+    logger.i(songs[currentSongIndex]);
 
     updateCount(songs[currentSongIndex]["track_id"]);
     isFavorite = await updateFavoriteStatus(songs[currentSongIndex]["track_id"]);
@@ -120,38 +121,12 @@ class PlayerLogic extends ChangeNotifier {
   Future<List<Map<String, dynamic>>> _getSongs() async {
     if (playlist == 0) {
       try {
-        final raw = await _audioQuery.querySongs(
-          sortType: SongSortType.TITLE,
-          orderType: OrderType.ASC_OR_SMALLER,
-          uriType: UriType.EXTERNAL,
-        );
-
-        final filtered = raw
-            .where((song) =>
-                // ignore: unnecessary_null_comparison
-                song.data != null &&
-                song.data.isNotEmpty &&
-                // ignore: unnecessary_null_comparison
-                song.title != null &&
-                song.title.isNotEmpty)
-            .toList();
+        final loadedSongs = await DbHelper().getAllTracks();
         
-        final result = await Future.wait(
-          filtered.map((s) async {
-            final trackId = await SongService().getSongIdByPath(s.data);
-            return {
-              'id': s.id,
-              'path': s.data,
-              'title': s.title,
-              'artist': s.artist,
-              'track_id': trackId, 
-            };
-          }),
-        );
-
-        return result;
+        return loadedSongs; 
+        
       } catch (e, st) {
-        logger.e('Ошибка загрузки песен устройства', error: e, stackTrace: st);
+        logger.e('Ошибка загрузки треков', error: e, stackTrace: st);
         return [];
       }
     } else if (playlist == -1) {
@@ -201,12 +176,20 @@ class PlayerLogic extends ChangeNotifier {
         }
         logger.i("Favorite toggled successfully");
     } catch (e) {
-        // Если ошибка - откатываем
         isFavorite = !isFavorite;
         notifyListeners();
         logger.e("Failed to toggle favorite", error: e);
     }
-}
+  }
+
+  Future<void> removeTrack() async {
+    int trackId = songs[currentSongIndex]["track_id"];
+    if (playlist == 0) {
+      await DeleteService().addToBlackList(trackId);
+    } else {
+      await PlaylistService().deleteFromPlaylist(playlist, songs[currentSongIndex]["path"]);
+    }
+  }
 
   Future<Database> get db async => _db ??= await DatabaseHelper().db;
 
@@ -241,7 +224,16 @@ class PlayerLogic extends ChangeNotifier {
       currentSongIndex = 0; 
     }
     else if (repeatMode == RepeatMode.off && previousMode != RepeatMode.off) {
-      songs = queue.makeQueue(_songs, currentSongIndex);
+      final currentTrackId = songs[currentSongIndex]['track_id'];
+      final originalIndex = _songs.indexWhere((song) => song['track_id'] == currentTrackId);
+      
+      if (originalIndex != -1) {
+        songs = queue.makeQueue(_songs, originalIndex);
+        currentSongIndex = 0;
+      } else {
+        songs = List<Map<String, dynamic>>.from(_songs);
+        currentSongIndex = 0;
+      }
     }
 
     refreshUI();

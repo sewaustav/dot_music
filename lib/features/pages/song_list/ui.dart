@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class SongCard extends StatelessWidget {
-  final SongModel song;
+  final Map<String, dynamic> song;
   final int index;
   final VoidCallback onPlay;
   final VoidCallback onAddToPlaylist;
@@ -58,7 +58,7 @@ class SongCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  song.title,
+                  song["title"],
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -69,7 +69,7 @@ class SongCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  song.artist ?? 'Неизвестный артист',
+                  song["artist"] ?? 'Неизвестный артист',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

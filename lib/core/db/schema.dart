@@ -57,8 +57,7 @@ class Schema {
       track_id INTEGER NOT NULL,
       path TEXT,
 
-      FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE,
-      FOREIGN KEY (path) REFERENCES tracks (path) ON DELETE CASCADE
+      FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
     )
   ''';
 

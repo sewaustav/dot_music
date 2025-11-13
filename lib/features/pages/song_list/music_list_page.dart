@@ -1,9 +1,12 @@
 import 'package:dot_music/core/config.dart';
+import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:dot_music/features/pages/song_list/music_service.dart';
 import 'package:dot_music/features/pages/song_list/playlist_dialog.dart';
 import 'package:dot_music/features/pages/song_list/ui.dart';
+import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:on_audio_query/on_audio_query.dart';
@@ -18,6 +21,7 @@ class SongListPage extends StatefulWidget {
 class _SongListPageState extends State<SongListPage> {
   final SongListController _controller = SongListController();
   final ScrollController _scrollController = ScrollController();
+  List<Map<String, dynamic>> songs = [];
 
   @override
   void initState() {
@@ -56,7 +60,7 @@ class _SongListPageState extends State<SongListPage> {
 
   Future<void> _loadSongs() async {
     try {
-      await _controller.loadSongs();
+      songs = await _controller.loadSongs();
       setState(() {});
     } catch (e) {
       _showErrorSnackBar('Ошибка загрузки треков: $e');
@@ -86,23 +90,29 @@ class _SongListPageState extends State<SongListPage> {
     }
   }
 
-  Future<void> _playSong(SongModel song, int index) async {
-    final hasAccess = await _controller.checkFileAccess(song);
-    
-    if (hasAccess) {
-      logger.i('Воспроизведение трека: ${song.title}');
+  Future<void> _playSong(Map<String, dynamic> song, int index) async {
+    // final hasAccess = await _controller.checkFileAccess(song);
+    logger.i('Воспроизведение трека: ${song["path"]}');
+    context.push("/player", extra: {
+      "songData": song["path"], 
+      "index": index, 
+      "playlist": 0,
+      "fromMiniPlayer": false
+    });
+    /* if (hasAccess) {
+      logger.i('Воспроизведение трека: ${song["path"]}');
       context.push("/player", extra: {
-        "songData": song.data, 
+        "songData": song["path"], 
         "index": index, 
         "playlist": 0,
         "fromMiniPlayer": false
       });
     } else {
-      _showErrorSnackBar('Файл не найден: ${song.title}');
-    }
+      _showErrorSnackBar('Файл не найден: ${song["title"]}');
+    } */
   }
 
-  Future<void> _showPlaylistSelectionDialog(SongModel song) async {
+  Future<void> _showPlaylistSelectionDialog(Map<String,dynamic> song) async {
     final playlists = await _controller.getPlaylists();
     
     final selectedPlaylist = await PlaylistSelectionDialog.show(context, playlists);
@@ -117,16 +127,22 @@ class _SongListPageState extends State<SongListPage> {
     }
   }
 
-  void _handleDelete(SongModel song) {
-    logger.i('Удаление трека (заглушка): ${song.title}');
+  Future<void> _handleDelete(Map<String, dynamic> song) async {
+    logger.i('Удаление трека : ${song["title"]}');
+    final int trackId = await SongService().getSongIdByPath(song["path"]);
+    logger.i(await DbHelper().getTrackInfoById(trackId));
+    await DeleteService().addToBlackList(trackId);
+    logger.i('Удаление трека : ${song["title"]}');
+
   }
 
   Widget _buildContent() {
-    if (_controller.isLoading && _controller.songs.isEmpty) {
+    if (_controller.isLoading && songs.isEmpty) {
+      for (int i=0; i<20; i++) {logger.i(songs[i]);}
       return Center(child: CircularProgressIndicator(color: accent));
     }
 
-    if (_controller.songs.isEmpty) {
+    if (songs.isEmpty) {
       return Center(
         child: Text(
           'Треки не найдены',
@@ -141,9 +157,10 @@ class _SongListPageState extends State<SongListPage> {
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(16),
-      itemCount: _controller.songs.length,
+      
+      itemCount: songs.length,
       itemBuilder: (context, index) {
-        final song = _controller.songs[index];
+        final song = songs[index];
         return SongCard(
           song: song,
           index: index,

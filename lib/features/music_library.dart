@@ -1,5 +1,6 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class TrackLoaderService {
@@ -36,37 +37,61 @@ class TrackLoaderService {
     await Future.delayed(const Duration(milliseconds: 300));
 
     logger.i('🎶 Загружаем треки...');
-    final songs = await _audioQuery.querySongs(
+    List<SongModel> songs = await _audioQuery.querySongs(
       sortType: SongSortType.TITLE,
       orderType: OrderType.ASC_OR_SMALLER,
       uriType: UriType.EXTERNAL,
     );
 
+    /* List<SongModel> filteredSongs = [];
+
+    for (int index = 0; index < songs.length; index++) {
+      try {
+        final trackId = await SongService().getSongIdByPath(songs[index].data);
+        bool isBlackout = await DeleteService().isBlocked(trackId);
+        if (!isBlackout) {
+          filteredSongs.add(songs[index]);
+        }
+      } catch (e) {
+        logger.i('Ошибка при проверке трека: $e');
+        // filteredSongs.add(songs[index]);
+      }
+    }
+
+    songs = filteredSongs; */
     logger.i('✅ Загружено ${songs.length} треков');
     return songs;
   }
 
-  Future<void> addMissingSongsToDb(SongService ss, List<SongModel> songs) async {
-    int addedCount = 0;
+  Future<void> addMissingSongsToDbWithProgress(
+    SongService songService,
+    List<SongModel> songs,
+    Function(int loaded, int total) onProgress,
+  ) async {
+    try {
+      final total = songs.length;
+      int loaded = 0;
 
-    for (final song in songs) {
-      try {
-        final exists = await ss.getSongByPath(song.data);
-        if (!exists) {
-          await ss.addSongToDb(song.data);
-          addedCount++;
-          // logger.i('Добавлен трек в БД: ${song.title}');
+      for (final song in songs) {
+        try {
+          final exists = await songService.getSongByPath(song.data);
+          if (!exists) {
+            await songService.addSongToDb(song.data);
+          }
+          loaded++;
+          onProgress(loaded, total);
+        } catch (e) {
+          logger.e('Ошибка добавления трека: ${song.title}', error: e);
+          // Продолжаем даже при ошибке
+          loaded++;
+          onProgress(loaded, total);
         }
-      } catch (e, st) {
-        error = e.toString();
-        logger.e('Ошибка при добавлении трека ${song.title}', error: e, stackTrace: st);
       }
-    }
-    isAddedBd = true;
-    if (addedCount > 0) {
-      logger.i('Добавлено новых треков в БД: $addedCount');
-    } else {
-      logger.i('Все треки уже есть в БД');
+
+      logger.i('Добавлено треков: $loaded из $total');
+    } catch (e, st) {
+      logger.e('Ошибка при добавлении треков в БД', error: e, stackTrace: st);
+      rethrow;
     }
   }
 
