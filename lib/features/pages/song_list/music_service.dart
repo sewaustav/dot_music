@@ -6,6 +6,7 @@ import 'package:dot_music/features/music_library.dart';
 import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SongListController {
   final TrackLoaderService _trackLoader = TrackLoaderService();
@@ -21,9 +22,28 @@ class SongListController {
   int _trackCount = 0;
   int get trackCount => _trackCount;
 
+  static const String _initKey = 'app_initialized';
+  static bool _pluginInitialized = false;
+
   Future<void> initialize() async {
     try {
+      // Проверяем, был ли плагин уже инициализирован
+      if (_pluginInitialized) {
+        logger.i('TrackLoaderService уже инициализирован, пропускаем');
+        return;
+      }
+
+      // Проверяем, была ли инициализация при первом запуске
+      final prefs = await SharedPreferences.getInstance();
+      final isAppInitialized = prefs.getBool(_initKey) ?? false;
+
+      if (!isAppInitialized) {
+        logger.w('Приложение не инициализировано! Это должно происходить на HomePage');
+        return;
+      }
+
       await _trackLoader.initializePlugin();
+      _pluginInitialized = true;
       logger.i('TrackLoaderService инициализирован');
     } catch (e, st) {
       logger.e('Ошибка инициализации TrackLoaderService', error: e, stackTrace: st);
@@ -59,11 +79,12 @@ class SongListController {
     _songs.clear(); 
     
     try {
+      // Просто загружаем треки из БД, без повторной инициализации
       final loadedSongs = await DbHelper().getAllTracks();
       
       final count = await _playlistView.getCountTrack();
       _trackCount = count;
-      logger.i('✅ Успешно загружено ${_songs.length} треков');
+      logger.i('✅ Успешно загружено ${loadedSongs.length} треков из БД');
       
       return loadedSongs; 
       

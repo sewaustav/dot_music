@@ -8,7 +8,7 @@ import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class HomePage extends StatefulWidget {
@@ -31,11 +31,33 @@ class _HomePageState extends State<HomePage> {
   String? _errorText;
   int _loadedTracks = 0;
   int _totalTracks = 0;
+  bool _isInitialized = false;
+
+  static const String _initKey = 'app_initialized';
 
   @override
   void initState() {
     super.initState();
-    _initTracks();
+    _checkInitialization();
+  }
+
+  Future<void> _checkInitialization() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isInitialized = prefs.getBool(_initKey) ?? false;
+
+      if (!_isInitialized) {
+        logger.i('Первый запуск приложения - начинаем инициализацию');
+        await _initTracks();
+        await prefs.setBool(_initKey, true);
+      } else {
+        logger.i('Приложение уже инициализировано - пропускаем загрузку');
+      }
+    } catch (e, st) {
+      logger.e('Ошибка проверки инициализации', error: e, stackTrace: st);
+      // Если ошибка при проверке, лучше инициализировать
+      await _initTracks();
+    }
   }
 
   Future<void> _initTracks() async {
@@ -82,6 +104,15 @@ class _HomePageState extends State<HomePage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  // Метод для принудительной переинициализации (если нужно)
+  Future<void> _forceReinitialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_initKey, false);
+    _isInitialized = false;
+    await _initTracks();
+    await prefs.setBool(_initKey, true);
   }
 
   Future<void> _createPlaylist() async {
