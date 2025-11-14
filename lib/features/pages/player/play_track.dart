@@ -3,6 +3,7 @@ import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/player/service.dart';
 import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/pages/player/ui_widgets.dart';
+import 'package:dot_music/features/track_service/edit_info.dart';
 import 'package:flutter/material.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:go_router/go_router.dart';
@@ -173,7 +174,6 @@ class _PlayerPageState extends State<PlayerPage> {
                     PlayerActionsRow(
                       onOpenPlaylist: _openPlaylistView,
                       onDelete: _logic.removeTrack,
-                      onEdit: _editTrackInfo,
                       isFavorite: _logic.isFavorite,
                       toggleFavorite: _logic.toggleFavorite,
                     ),
@@ -221,8 +221,5 @@ class _PlayerPageState extends State<PlayerPage> {
       ),
     );
   }
-
-  
-  void _editTrackInfo() {}
   void _openPlayerSettings() {}
 }

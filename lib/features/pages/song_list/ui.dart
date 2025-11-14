@@ -1,6 +1,7 @@
+import 'package:dot_music/core/config.dart';
 import 'package:dot_music/design/colors.dart';
+import 'package:dot_music/features/track_service/edit_info.dart';
 import 'package:flutter/material.dart';
-import 'package:on_audio_query/on_audio_query.dart';
 
 class SongCard extends StatelessWidget {
   final Map<String, dynamic> song;
@@ -8,6 +9,7 @@ class SongCard extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onAddToPlaylist;
   final VoidCallback onDelete;
+  final Function(String newTitle) onRename; // Добавляем колбэк
 
   const SongCard({
     super.key,
@@ -16,6 +18,7 @@ class SongCard extends StatelessWidget {
     required this.onPlay,
     required this.onAddToPlaylist,
     required this.onDelete,
+    required this.onRename, // Обязательный параметр
   });
 
   @override
@@ -91,8 +94,18 @@ class SongCard extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            onSelected: (value) {
+            onSelected: (value) async {
               switch (value) {
+                case 'edit':
+                  final newTitle = await SongEditDialog.show(
+                    context: context,
+                    song: song,
+                  );
+                  logger.i(newTitle);
+                  if (newTitle != null && newTitle != song["title"]) {
+                    onRename(newTitle);
+                  }
+                  break;
                 case 'add_to_playlist':
                   onAddToPlaylist();
                   break;
@@ -103,17 +116,42 @@ class SongCard extends StatelessWidget {
             },
             itemBuilder: (context) => [
               PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: textColor, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Редактировать',
+                      style: TextStyle(color: textColor),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
                 value: 'add_to_playlist',
-                child: Text(
-                  'Добавить в плейлист',
-                  style: TextStyle(color: textColor),
+                child: Row(
+                  children: [
+                    Icon(Icons.playlist_add, color: textColor, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Добавить в плейлист',
+                      style: TextStyle(color: textColor),
+                    ),
+                  ],
                 ),
               ),
               PopupMenuItem(
                 value: 'delete',
-                child: Text(
-                  'Удалить',
-                  style: TextStyle(color: Colors.redAccent),
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Удалить',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
                 ),
               ),
             ],

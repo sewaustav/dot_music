@@ -1,6 +1,5 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
-import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
 class TrackLoaderService {

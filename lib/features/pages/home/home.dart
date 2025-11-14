@@ -55,7 +55,6 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e, st) {
       logger.e('Ошибка проверки инициализации', error: e, stackTrace: st);
-      // Если ошибка при проверке, лучше инициализировать
       await _initTracks();
     }
   }
@@ -107,13 +106,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Метод для принудительной переинициализации (если нужно)
-  Future<void> _forceReinitialize() async {
+  /*Future<void> _forceReinitialize() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_initKey, false);
     _isInitialized = false;
     await _initTracks();
     await prefs.setBool(_initKey, true);
-  }
+  }*/
 
   Future<void> _createPlaylist() async {
     if (_formKey.currentState!.validate()) {
