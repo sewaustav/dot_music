@@ -1,15 +1,12 @@
-import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db.dart';
-import 'package:dot_music/features/music_library.dart';
 import 'package:dot_music/features/pages/home/create_playlist.dart';
 import 'package:dot_music/features/pages/home/ui.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
+import 'package:dot_music/features/track_service/load_tracks.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:on_audio_query/on_audio_query.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,97 +19,28 @@ class _HomePageState extends State<HomePage> {
   final dh = DatabaseHelper();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _trackLoader = TrackLoaderService();
 
-  List<SongModel> songs = [];
   bool _showForm = false;
-  bool _isLoading = false;
-  String _loadingText = "Loading tracks...";
-  String? _errorText;
-  int _loadedTracks = 0;
-  int _totalTracks = 0;
-  bool _isInitialized = false;
-
-  static const String _initKey = 'app_initialized';
 
   @override
   void initState() {
     super.initState();
-    _checkInitialization();
+    // Подписываемся на изменения состояния загрузки
+    TrackLoadingState.listeners.add(_onLoadingStateChanged);
   }
 
-  Future<void> _checkInitialization() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _isInitialized = prefs.getBool(_initKey) ?? false;
+  @override
+  void dispose() {
+    TrackLoadingState.listeners.remove(_onLoadingStateChanged);
+    _nameController.dispose();
+    super.dispose();
+  }
 
-      if (!_isInitialized) {
-        logger.i('Первый запуск приложения - начинаем инициализацию');
-        await _initTracks();
-        await prefs.setBool(_initKey, true);
-      } else {
-        logger.i('Приложение уже инициализировано - пропускаем загрузку');
-      }
-    } catch (e, st) {
-      logger.e('Ошибка проверки инициализации', error: e, stackTrace: st);
-      await _initTracks();
+  void _onLoadingStateChanged() {
+    if (mounted) {
+      setState(() {});
     }
   }
-
-  Future<void> _initTracks() async {
-    setState(() {
-      _isLoading = true;
-      _loadingText = "Инициализация плагина...";
-      _errorText = null;
-      _loadedTracks = 0;
-      _totalTracks = 0;
-    });
-
-    try {
-      await _trackLoader.initializePlugin();
-
-      final loadedSongs = await _trackLoader.loadSongs();
-      if (!mounted) return;
-
-      setState(() {
-        songs = loadedSongs;
-        _totalTracks = loadedSongs.length;
-        _loadingText = "Добавляем треки в базу...";
-      });
-
-      // Добавляем треки с обновлением прогресса
-      await _trackLoader.addMissingSongsToDbWithProgress(
-        SongService(),
-        loadedSongs,
-        (loaded, total) {
-          if (mounted) {
-            setState(() {
-              _loadedTracks = loaded;
-              _totalTracks = total;
-            });
-          }
-        },
-      );
-
-      if (_trackLoader.error.isNotEmpty) {
-        setState(() => _errorText = _trackLoader.error);
-      }
-    } catch (e, st) {
-      logger.e('Ошибка загрузки треков', error: e, stackTrace: st);
-      setState(() => _errorText = e.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  // Метод для принудительной переинициализации (если нужно)
-  /*Future<void> _forceReinitialize() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_initKey, false);
-    _isInitialized = false;
-    await _initTracks();
-    await prefs.setBool(_initKey, true);
-  }*/
 
   Future<void> _createPlaylist() async {
     if (_formKey.currentState!.validate()) {
@@ -159,17 +87,17 @@ class _HomePageState extends State<HomePage> {
               },
             ),
 
-          // Блокирующий оверлей при загрузке
-          if (_isLoading || _errorText != null)
+          // Блокировка UI при загрузке или ошибке
+          if (TrackLoadingState.isLoading || TrackLoadingState.errorText != null)
             GestureDetector(
-              onTap: () {}, // Блокируем все нажатия
+              onTap: () {},
               child: Container(
                 color: Colors.transparent,
               ),
             ),
 
-          // Полоска загрузки внизу экрана
-          if (_isLoading)
+          // Индикатор загрузки
+          if (TrackLoadingState.isLoading)
             Positioned(
               left: 0,
               right: 0,
@@ -195,7 +123,7 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Expanded(
                           child: Text(
-                            _loadingText,
+                            TrackLoadingState.loadingText,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -203,9 +131,9 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                         ),
-                        if (_totalTracks > 0)
+                        if (TrackLoadingState.totalTracks > 0)
                           Text(
-                            '$_loadedTracks / $_totalTracks',
+                            '${TrackLoadingState.loadedTracks} / ${TrackLoadingState.totalTracks}',
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.7),
                               fontSize: 14,
@@ -218,10 +146,12 @@ class _HomePageState extends State<HomePage> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value: _totalTracks > 0 ? _loadedTracks / _totalTracks : null,
+                        value: TrackLoadingState.totalTracks > 0
+                            ? TrackLoadingState.loadedTracks / TrackLoadingState.totalTracks
+                            : null,
                         backgroundColor: Colors.white.withOpacity(0.1),
                         valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF1DB954), // Spotify green
+                          Color(0xFF1DB954),
                         ),
                         minHeight: 4,
                       ),
@@ -231,8 +161,8 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-          // Показываем ошибку поверх всего
-          if (_errorText != null)
+          // Экран ошибки
+          if (TrackLoadingState.errorText != null)
             Positioned.fill(
               child: Container(
                 color: Colors.black.withOpacity(0.9),
@@ -249,7 +179,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          _errorText!,
+                          TrackLoadingState.errorText!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
@@ -260,8 +190,9 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 24),
                         ElevatedButton(
                           onPressed: () {
-                            setState(() => _errorText = null);
-                            _initTracks();
+                            TrackLoadingState.errorText = null;
+                            TrackLoadingState.notify();
+                            initTracksInBackground();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,

@@ -98,9 +98,7 @@ class _SongListPageState extends State<SongListPage> {
   Future<void> _loadSongs() async {
     try {
       songs = await _controller.loadSongs();
-      logger.i("ee");
       setState(() {
-        logger.i("message");
       });
     } catch (e) {
       _showErrorSnackBar('Ошибка загрузки треков: $e');
