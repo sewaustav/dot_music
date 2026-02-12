@@ -41,6 +41,8 @@ class _HomePageState extends State<HomePage> {
       setState(() {});
     }
   }
+  
+  
 
   Future<void> _createPlaylist() async {
     if (_formKey.currentState!.validate()) {
@@ -71,6 +73,11 @@ class _HomePageState extends State<HomePage> {
               onGoToPlaylists: () => context.push("/listpl"),
               onGoToStatistic: () => context.push("/statistic"),
               onDebug: () async => await dh.getAllTables(),
+              onScanTracks: () {
+                  if (!TrackLoadingState.isLoading) {
+                    initTracksInBackground(); 
+                  }
+                },
             ),
           ),
 

@@ -20,6 +20,7 @@ class SongListPage extends StatefulWidget {
 class _SongListPageState extends State<SongListPage> {
   final SongListController _controller = SongListController();
   final ScrollController _scrollController = ScrollController();
+  final ss = SongService();
   List<Map<String, dynamic>> songs = [];
 
   @override
@@ -36,29 +37,30 @@ class _SongListPageState extends State<SongListPage> {
   }
 
   Future<void> _handleRename(int index, String newTitle) async {
-  final song = songs[index];
-  final oldTitle = song["title"];
-  
-  logger.i('Переименование трека: $oldTitle -> $newTitle');
-  
-  setState(() {
-    songs[index]["title"] = newTitle;
-  });
-  
-  try {
-    await Future.delayed(const Duration(milliseconds: 100));
-    await _loadSongs();
-    
-    _showSuccessSnackBar('Название изменено');
-    
-  } catch (e) {
-    logger.e('Ошибка при обновлении списка: $e');
+    final song = songs[index];
+    final oldTitle = song["title"];
+
+    logger.i('Переименование трека: $oldTitle -> $newTitle');
+
+    ss.changeSongTitle(song["path"], newTitle);
+
     setState(() {
-      songs[index]["title"] = oldTitle;
+      songs[index]["title"] = newTitle;
     });
-    _showErrorSnackBar('Ошибка обновления списка');
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 100));
+      await _loadSongs();
+
+      _showSuccessSnackBar('Название изменено');
+    } catch (e) {
+      logger.e('Ошибка при обновлении списка: $e');
+      setState(() {
+        songs[index]["title"] = oldTitle;
+      });
+      _showErrorSnackBar('Ошибка обновления списка');
+    }
   }
-}
 
   Widget _buildContent() {
     if (_controller.isLoading && songs.isEmpty) {
@@ -69,10 +71,7 @@ class _SongListPageState extends State<SongListPage> {
       return Center(
         child: Text(
           'Треки не найдены',
-          style: TextStyle(
-            fontSize: 16,
-            color: textColor,
-          ),
+          style: TextStyle(fontSize: 16, color: textColor),
         ),
       );
     }
@@ -89,7 +88,7 @@ class _SongListPageState extends State<SongListPage> {
           onPlay: () => _playSong(song, index),
           onAddToPlaylist: () => _showPlaylistSelectionDialog(song),
           onDelete: () => _handleDelete(song),
-          onRename: (newTitle) => _handleRename(index, newTitle), 
+          onRename: (newTitle) => _handleRename(index, newTitle),
         );
       },
     );
@@ -98,8 +97,7 @@ class _SongListPageState extends State<SongListPage> {
   Future<void> _loadSongs() async {
     try {
       songs = await _controller.loadSongs();
-      setState(() {
-      });
+      setState(() {});
     } catch (e) {
       _showErrorSnackBar('Ошибка загрузки треков: $e');
       setState(() {});
@@ -109,10 +107,7 @@ class _SongListPageState extends State<SongListPage> {
   void _showErrorSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: const Duration(seconds: 3),
-        ),
+        SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
       );
     }
   }
@@ -120,28 +115,31 @@ class _SongListPageState extends State<SongListPage> {
   void _showSuccessSnackBar(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          duration: const Duration(seconds: 2),
-        ),
+        SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
       );
     }
   }
 
   Future<void> _playSong(Map<String, dynamic> song, int index) async {
     logger.i('Воспроизведение трека: ${song["path"]}');
-    context.push("/player", extra: {
-      "songData": song["path"], 
-      "index": index, 
-      "playlist": 0,
-      "fromMiniPlayer": false
-    });
+    context.push(
+      "/player",
+      extra: {
+        "songData": song["path"],
+        "index": index,
+        "playlist": 0,
+        "fromMiniPlayer": false,
+      },
+    );
   }
 
-  Future<void> _showPlaylistSelectionDialog(Map<String,dynamic> song) async {
+  Future<void> _showPlaylistSelectionDialog(Map<String, dynamic> song) async {
     final playlists = await _controller.getPlaylists();
-    
-    final selectedPlaylist = await PlaylistSelectionDialog.show(context, playlists);
+
+    final selectedPlaylist = await PlaylistSelectionDialog.show(
+      context,
+      playlists,
+    );
 
     if (selectedPlaylist != null && mounted) {
       try {
@@ -159,7 +157,6 @@ class _SongListPageState extends State<SongListPage> {
     logger.i(await DbHelper().getTrackInfoById(trackId));
     await DeleteService().addToBlackList(trackId);
     logger.i('Удаление трека : ${song["title"]}');
-
   }
 
   @override
@@ -171,14 +168,11 @@ class _SongListPageState extends State<SongListPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go("/")
+          onPressed: () => context.go("/"),
         ),
         title: const Text(
           'Музыкальные треки',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
         actions: [
@@ -188,10 +182,7 @@ class _SongListPageState extends State<SongListPage> {
               child: Center(
                 child: Text(
                   'Всего: ${_controller.trackCount}',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
                 ),
               ),
             ),

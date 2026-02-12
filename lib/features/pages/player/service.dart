@@ -1,4 +1,3 @@
-// player_logic.dart - Главный фасад
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -14,17 +13,7 @@ import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/player/audio.dart';
 import 'package:dot_music/features/queue/queue.dart';
 import 'package:dot_music/features/track_service/delete_service.dart';
-import 'package:on_audio_query/on_audio_query.dart';
 
-// Подклассы
-/* part 'player_state.dart';
-part 'player_audio_manager.dart';
-part 'player_queue_manager.dart';
-part 'player_favorite_manager.dart';
-part 'player_track_manager.dart'; */
-
-/// Главный класс-фасад, делегирующий работу подклассам
-/// Все методы доступны через него, импорты не ломаются
 class PlayerLogic extends ChangeNotifier {
   final VoidCallback refreshUI;
   final Function(bool) refreshBtn;
@@ -33,7 +22,6 @@ class PlayerLogic extends ChangeNotifier {
   final int playlist;
   final String? initialPath;
 
-  // Подклассы
   late final PlayerState state;
   late final PlayerAudioManager audio;
   late final PlayerQueueManager queueManager;
@@ -119,9 +107,6 @@ class PlayerLogic extends ChangeNotifier {
 // player_state.dart
 // ============================================
 
-//part of 'player_logic.dart';
-
-/// Хранит состояние плеера
 class PlayerState {
   final PlayerLogic parent;
 
@@ -144,9 +129,6 @@ class PlayerState {
 // player_audio_manager.dart
 // ============================================
 
-//part of 'player_logic.dart';
-
-/// Управляет воспроизведением аудио
 class PlayerAudioManager {
   final PlayerLogic parent;
   StreamSubscription<Duration>? _positionSubscription;
@@ -327,9 +309,6 @@ class PlayerAudioManager {
 // player_queue_manager.dart
 // ============================================
 
-// part of 'player_logic.dart';
-
-/// Управляет очередью треков
 class PlayerQueueManager {
   final PlayerLogic parent;
   final queue = QueueService();
@@ -378,9 +357,6 @@ class PlayerQueueManager {
 // player_favorite_manager.dart
 // ============================================
 
-// part of 'player_logic.dart';
-
-/// Управляет избранным
 class PlayerFavoriteManager {
   final PlayerLogic parent;
 
@@ -420,9 +396,6 @@ class PlayerFavoriteManager {
 // player_track_manager.dart
 // ============================================
 
-// part of 'player_logic.dart';
-
-/// Управляет треками и статистикой
 class PlayerTrackManager {
   final PlayerLogic parent;
   final PlaylistView pv = PlaylistView();

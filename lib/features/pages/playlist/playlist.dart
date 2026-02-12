@@ -18,6 +18,7 @@ class PlaylistPage extends StatefulWidget {
 class _PlaylistPageState extends State<PlaylistPage> {
   List<Map<String, dynamic>> _songs = [];
   final ps = PlaylistService();
+  final ss = SongService();
 
   Future<List<Map<String, dynamic>>> _getSongs() async {
     final pv = PlaylistView();
@@ -37,12 +38,15 @@ class _PlaylistPageState extends State<PlaylistPage> {
 
   void _playSong(Map<String, dynamic> song, int index) {
     logger.i("${song} -- $index");
-    context.push("/player", extra: {
-      "songData": song["path"],
-      "index": index,
-      "playlist": widget.playlist,
-      "fromMiniPlayer": false
-    });
+    context.push(
+      "/player",
+      extra: {
+        "songData": song["path"],
+        "index": index,
+        "playlist": widget.playlist,
+        "fromMiniPlayer": false,
+      },
+    );
     logger.i("Playing track: ${song['title']}");
   }
 
@@ -56,16 +60,14 @@ class _PlaylistPageState extends State<PlaylistPage> {
   }
 
   Future<void> _editTrackTitle(Map<String, dynamic> song) async {
-    final newTitle = await SongEditDialog.show(
-      context: context,
-      song: song,
-    );
-    
+    final newTitle = await SongEditDialog.show(context: context, song: song);
+
     if (newTitle != null) {
       setState(() {
         final index = _songs.indexWhere((s) => s['path'] == song['path']);
         if (index != -1) {
           _songs[index]['title'] = newTitle;
+          ss.changeSongTitle(_songs[index]["path"], newTitle);
         }
       });
     }
@@ -86,16 +88,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
         elevation: 0,
         title: const Text(
           'Playlist',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         centerTitle: true,
       ),
       body: _songs.isEmpty
-          ? Center(
-              child: CircularProgressIndicator(color: accent),
-            )
+          ? Center(child: CircularProgressIndicator(color: accent))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _songs.length,
@@ -146,7 +144,7 @@ class _SongCard extends StatelessWidget {
             color: Colors.black.withOpacity(0.15),
             blurRadius: 8,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Row(
@@ -157,10 +155,7 @@ class _SongCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               gradient: LinearGradient(
-                colors: [
-                  accent.withOpacity(0.9),
-                  secondary.withOpacity(0.9),
-                ],
+                colors: [accent.withOpacity(0.9), secondary.withOpacity(0.9)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -187,10 +182,7 @@ class _SongCard extends StatelessWidget {
                   artist,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.white60, fontSize: 13),
                 ),
               ],
             ),
@@ -206,9 +198,9 @@ class _SongCard extends StatelessWidget {
             onPressed: onDelete,
           ),
           IconButton(
-            icon: Icon(Icons.edit, color: secondary), 
-            onPressed: onEdit, 
-          )
+            icon: Icon(Icons.edit, color: secondary),
+            onPressed: onEdit,
+          ),
         ],
       ),
     );

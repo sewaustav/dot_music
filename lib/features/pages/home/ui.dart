@@ -17,6 +17,7 @@ class HomePageUI extends StatefulWidget {
   final VoidCallback onGoToStatistic;
   final VoidCallback onCreatePlaylist;
   final VoidCallback onDebug;
+  final VoidCallback onScanTracks;
 
   const HomePageUI({
     super.key,
@@ -29,7 +30,10 @@ class HomePageUI extends StatefulWidget {
     required this.onGoToStatistic,
     required this.onCreatePlaylist,
     required this.onDebug,
+    required this.onScanTracks,
   });
+  
+  
 
   @override
   State<HomePageUI> createState() => _HomePageUIState();
@@ -42,6 +46,8 @@ class _HomePageUIState extends State<HomePageUI> {
   bool deleting = false;
   int charIndex = 0;
   late Timer typingTimer;
+  
+  
 
   @override
   void initState() {
@@ -202,6 +208,12 @@ class _HomePageUIState extends State<HomePageUI> {
                         letterSpacing: 0.5,
                       ),
                     ),
+                  ),
+                  
+                  _buildIconButton(
+                    icon: Icons.refresh_rounded, 
+                    onPressed: widget.onScanTracks, 
+                    color: Colors.blueAccent, 
                   ),
 
                 ],
