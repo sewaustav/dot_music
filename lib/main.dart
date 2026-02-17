@@ -14,7 +14,7 @@ void main() async {
 
   runApp(DotMusic());
 
-  initTracksInBackground();
+  // initTracksInBackground();
 }
 
 class DotMusic extends StatelessWidget {

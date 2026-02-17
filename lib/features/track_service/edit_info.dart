@@ -57,7 +57,7 @@ class SongEditDialog {
                         final value = controller.text.trim();
                         if (value.isEmpty) return;
 
-                        await _updateTitle(song["path"], value);
+                        await _updateTitle(song, value);
 
                         Navigator.pop(dialogContext, value);
                       },
