@@ -143,5 +143,9 @@
   "sortTracks": "Sort tracks",
   "sortByPopularity": "By popularity",
   "sortByAlphabet": "By alphabet",
-  "sortByDateAdded": "Date added"
+  "sortByDateAdded": "Date added",
+  "playNext": "Play next",
+  "duplicateInQueue": "Duplicate in queue",
+  "removeFromQueue": "Remove from queue",
+  "dragToReorder": "Drag to reorder"
 }

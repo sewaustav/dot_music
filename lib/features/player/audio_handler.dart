@@ -94,16 +94,20 @@ class MyAudioHandler extends BaseAudioHandler implements AudioController {
         .where((song) => (song['path'] as String).isNotEmpty)
         .toList();
     _queueIndex = index >= 0 && index < _queue.length ? index : 0;
-    queue.value = _queue.map(_mediaItemFor).toList();
+    queue.value = _queue.asMap().entries.map(_mediaItemFor).toList();
     await _persistQueue();
   }
 
-  MediaItem _mediaItemFor(Map<String, dynamic> song) => MediaItem(
-    id: song['path'] as String,
-    title: song['title'] as String? ?? '',
-    artist: song['artist'] as String? ?? '',
-    artUri: _cachedGradientPath == null ? null : Uri.file(_cachedGradientPath!),
-  );
+  /// Дубли трека в очереди должны иметь уникальные id медиа-сессии.
+  MediaItem _mediaItemFor(MapEntry<int, Map<String, dynamic>> entry) =>
+      MediaItem(
+        id: '${entry.value['path']}#${entry.key}',
+        title: entry.value['title'] as String? ?? '',
+        artist: entry.value['artist'] as String? ?? '',
+        artUri: _cachedGradientPath == null
+            ? null
+            : Uri.file(_cachedGradientPath!),
+      );
 
   Future<void> _persistQueue() async {
     final prefs = await SharedPreferences.getInstance();
@@ -123,7 +127,7 @@ class MyAudioHandler extends BaseAudioHandler implements AudioController {
           .toList();
       _queueIndex = prefs.getInt(_indexPrefsKey) ?? 0;
       if (_queueIndex >= _queue.length) _queueIndex = 0;
-      queue.value = _queue.map(_mediaItemFor).toList();
+      queue.value = _queue.asMap().entries.map(_mediaItemFor).toList();
     } catch (_) {
       // Битый/устаревший кэш очереди просто игнорируем.
       _queue = [];

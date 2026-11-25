@@ -22,6 +22,88 @@ class PlayerQueueManager {
     List<String> paths,
   ) => queue.reorderByPaths(songs, paths);
 
+  /// [newIndex] приходит из ReorderableListView: при перемещении вниз
+  /// целевой индекс сдвигается на один влево.
+  bool moveQueueItem(int oldIndex, int newIndex) {
+    final songs = parent.state.songs;
+    if (oldIndex < 0 || oldIndex >= songs.length) return false;
+
+    var target = newIndex;
+    if (oldIndex < target) target--;
+    if (target < 0 || target >= songs.length || target == oldIndex) {
+      return false;
+    }
+
+    final current = parent.state.currentSongIndex;
+    songs.insert(target, songs.removeAt(oldIndex));
+
+    if (oldIndex == current) {
+      parent.state.currentSongIndex = target;
+    } else if (oldIndex < current && target >= current) {
+      parent.state.currentSongIndex = current - 1;
+    } else if (oldIndex > current && target <= current) {
+      parent.state.currentSongIndex = current + 1;
+    }
+
+    _commitEdit();
+    return true;
+  }
+
+  bool duplicateQueueItem(int index) {
+    final songs = parent.state.songs;
+    if (index < 0 || index >= songs.length) return false;
+
+    songs.insert(index + 1, Map<String, dynamic>.from(songs[index]));
+    if (index < parent.state.currentSongIndex) {
+      parent.state.currentSongIndex++;
+    }
+
+    _commitEdit();
+    return true;
+  }
+
+  /// Ставит выбранный трек сразу после текущего, не дублируя его.
+  bool playNextQueueItem(int index) {
+    final songs = parent.state.songs;
+    final current = parent.state.currentSongIndex;
+    if (index < 0 || index >= songs.length || index == current) return false;
+
+    final song = songs.removeAt(index);
+    final target = index < current ? current : current + 1;
+    songs.insert(target, song);
+    parent.state.currentSongIndex = index < current ? current - 1 : current;
+
+    _commitEdit();
+    return true;
+  }
+
+  bool removeQueueItem(int index) {
+    final songs = parent.state.songs;
+    if (index < 0 || index >= songs.length) return false;
+
+    final current = parent.state.currentSongIndex;
+    songs.removeAt(index);
+
+    if (songs.isEmpty) {
+      parent.state.currentSongIndex = 0;
+    } else if (index < current) {
+      parent.state.currentSongIndex = current - 1;
+    } else if (index == current && current >= songs.length) {
+      parent.state.currentSongIndex = 0;
+    }
+
+    _commitEdit();
+    return true;
+  }
+
+  /// Ручные правки становятся новой основой для выключения shuffle.
+  void _commitEdit() {
+    parent.state.originalSongs = List<Map<String, dynamic>>.from(
+      parent.state.songs,
+    );
+    parent.syncQueue();
+  }
+
   void changeRepeatMode() {
     if (parent.state.songs.isEmpty) return;
 

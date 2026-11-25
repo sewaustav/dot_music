@@ -268,4 +268,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get sortByDateAdded => 'По времени добавления';
+
+  @override
+  String get playNext => 'Слушать следующим';
+
+  @override
+  String get duplicateInQueue => 'Дублировать в очереди';
+
+  @override
+  String get removeFromQueue => 'Убрать из очереди';
+
+  @override
+  String get dragToReorder => 'Перетащить для изменения порядка';
 }

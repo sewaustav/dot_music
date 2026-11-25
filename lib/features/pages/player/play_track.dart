@@ -173,11 +173,7 @@ class _PlayerPageState extends State<PlayerPage> {
         context: context,
         backgroundColor: Colors.transparent,
         isScrollControlled: true,
-        builder: (context) => ListOfSongFromPlaylistControl(
-          songs: _logic.songs,
-          currentIndex: _logic.currentSongIndex,
-          playTrackByList: _logic.playSongByIndex,
-        ),
+        builder: (context) => ListOfSongFromPlaylistControl(logic: _logic),
       ),
     );
   }

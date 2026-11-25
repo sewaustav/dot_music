@@ -583,6 +583,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'По времени добавления'**
   String get sortByDateAdded;
+
+  /// No description provided for @playNext.
+  ///
+  /// In ru, this message translates to:
+  /// **'Слушать следующим'**
+  String get playNext;
+
+  /// No description provided for @duplicateInQueue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Дублировать в очереди'**
+  String get duplicateInQueue;
+
+  /// No description provided for @removeFromQueue.
+  ///
+  /// In ru, this message translates to:
+  /// **'Убрать из очереди'**
+  String get removeFromQueue;
+
+  /// No description provided for @dragToReorder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перетащить для изменения порядка'**
+  String get dragToReorder;
 }
 
 class _AppLocalizationsDelegate

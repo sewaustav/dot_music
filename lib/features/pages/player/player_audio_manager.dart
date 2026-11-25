@@ -129,6 +129,12 @@ class PlayerAudioManager {
     );
   }
 
+  Future<void> stop() async {
+    await audio.stop();
+    parent.state.isPlaying = false;
+    parent.notify();
+  }
+
   Future<void> togglePlayPause() async {
     if (audio.isPlaying) {
       await audio.pause();

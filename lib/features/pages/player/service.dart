@@ -130,6 +130,31 @@ class PlayerLogic extends ChangeNotifier {
   Future<void> toggleFavorite() => favoriteManager.toggleFavorite();
   Future<void> removeTrack() => trackManager.removeTrack();
   void changeRepeatMode() => queueManager.changeRepeatMode();
+
+  /// Редактирование очереди: ничего не удаляет с устройства и из библиотеки.
+  bool moveInQueue(int oldIndex, int newIndex) =>
+      queueManager.moveQueueItem(oldIndex, newIndex);
+
+  bool duplicateInQueue(int index) => queueManager.duplicateQueueItem(index);
+
+  bool playNextInQueue(int index) => queueManager.playNextQueueItem(index);
+
+  Future<void> removeFromQueue(int index) async {
+    final songs = state.songs;
+    if (index < 0 || index >= songs.length) return;
+
+    final removedCurrent = index == state.currentSongIndex;
+    if (!queueManager.removeQueueItem(index)) return;
+
+    if (songs.isEmpty) {
+      await audio.stop();
+      setError(l10n.trackListEmpty);
+      return;
+    }
+
+    if (removedCurrent) await audio.playTrack();
+  }
+
   Future<void> playNextSong() => audio.playNextSong();
   Future<void> playPreviousSong() => audio.playPreviousSong();
   Future<void> playSongByIndex(int index) => audio.playSongByIndex(index);

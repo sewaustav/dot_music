@@ -268,4 +268,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sortByDateAdded => 'Date added';
+
+  @override
+  String get playNext => 'Play next';
+
+  @override
+  String get duplicateInQueue => 'Duplicate in queue';
+
+  @override
+  String get removeFromQueue => 'Remove from queue';
+
+  @override
+  String get dragToReorder => 'Drag to reorder';
 }
