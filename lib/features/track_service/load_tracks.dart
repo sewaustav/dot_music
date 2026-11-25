@@ -24,6 +24,11 @@ Future<void> initTracksInBackground() async {
     TrackLoadingState.isLoading = true;
     TrackLoadingState.loadingText = "Инициализация плагина...";
     TrackLoadingState.errorText = null;
+    TrackLoadingState.loadedTracks = 0;
+    TrackLoadingState.totalTracks = 0;
+    // Ошибка прошлого запуска (например, отказ в разрешении) не должна
+    // оставаться на экране после успешного повтора.
+    _trackLoader.error = '';
     TrackLoadingState.notify();
 
     await _trackLoader.initializePlugin();

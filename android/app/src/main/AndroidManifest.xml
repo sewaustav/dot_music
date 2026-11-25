@@ -20,10 +20,14 @@
 
     <!-- Сервис + wake lock -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Обязательно для Android 14 (API 34)+ при воспроизведении медиа в фоне -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Уведомление плеера на Android 13 (API 33)+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
-        android:label="Music player"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/dot_music">
 
@@ -47,7 +51,8 @@
         <!-- Сервис для audio_service -->
         <service
             android:name="com.ryanheise.audioservice.AudioService"
-            android:exported="true">
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>

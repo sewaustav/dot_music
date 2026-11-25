@@ -47,8 +47,18 @@ class PlayerLogic extends ChangeNotifier {
   // === ПУБЛИЧНЫЕ МЕТОДЫ (делегируют в подклассы) ===
 
   Future<void> init() async {
-    state.songs = await trackManager.getSongs(playlist);
-    state.songs = queueManager.makeInitialQueue(state.songs, initialIndex);
+    final loadedSongs = await trackManager.getSongs(playlist);
+    if (loadedSongs.isEmpty) {
+      state.error = 'No songs available';
+      refreshUI();
+      notifyListeners();
+      return;
+    }
+
+    final safeIndex = initialIndex >= 0 && initialIndex < loadedSongs.length
+        ? initialIndex
+        : 0;
+    state.songs = queueManager.makeInitialQueue(loadedSongs, safeIndex);
     state.currentSongIndex = 0;
 
     logger.i(state.songs[state.currentSongIndex]);
@@ -60,6 +70,12 @@ class PlayerLogic extends ChangeNotifier {
     audio.setupListeners();
     await audio.playTrack();
 
+    refreshUI();
+    notifyListeners();
+  }
+
+  void setError(String message) {
+    state.error = message;
     refreshUI();
     notifyListeners();
   }
@@ -133,9 +149,14 @@ class PlayerAudioManager {
   final PlayerLogic parent;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
+  bool _isActive = true;
+  late final void Function() _completionCallback;
 
   PlayerAudioManager(this.parent) {
-    audioHandler.onTrackComplete = _handleTrackComplete;
+    _completionCallback = () {
+      if (_isActive) _handleTrackComplete();
+    };
+    audioHandler.onTrackComplete = _completionCallback;
   }
 
   void setupListeners() {
@@ -300,6 +321,10 @@ class PlayerAudioManager {
   }
 
   void dispose() {
+    _isActive = false;
+    if (identical(audioHandler.onTrackComplete, _completionCallback)) {
+      audioHandler.onTrackComplete = null;
+    }
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
   }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:audio_service/audio_service.dart';
@@ -8,6 +9,7 @@ import 'package:just_audio/just_audio.dart';
 class MyAudioHandler extends BaseAudioHandler {
   final _player = AudioPlayer();
   final PlayerStateListener _playerListener = PlayerStateListener();
+  StreamSubscription<Duration?>? _durationSubscription;
   String? _cachedGradientPath;
 
   void Function()? onTrackComplete;
@@ -19,7 +21,17 @@ class MyAudioHandler extends BaseAudioHandler {
 
     _player.playerStateStream.listen((state) {
       if (state.processingState == ProcessingState.completed) {
-        if (onTrackComplete != null) onTrackComplete!();
+        onTrackComplete?.call();
+      }
+    });
+
+    // Единственная подписка на длительность на весь жизненный цикл handler'а.
+    // Раньше она создавалась при каждом playFromFile и никогда не отменялась.
+    _durationSubscription = _player.durationStream.listen((duration) {
+      if (duration == null) return;
+      final current = mediaItem.value;
+      if (current != null) {
+        mediaItem.add(current.copyWith(duration: duration));
       }
     });
   }
@@ -34,7 +46,6 @@ class MyAudioHandler extends BaseAudioHandler {
     String? artworkPath,
     Uri? artworkUri,
   }) async {
-    _playerListener.addListener(callBackWidget);
     _cachedGradientPath ??= await GradientArtworkGenerator.generateGradientArtwork(
       colors: [
         Color(0xFF667eea),
@@ -53,15 +64,6 @@ class MyAudioHandler extends BaseAudioHandler {
 
     await _player.setFilePath(path);
     await _player.play();
-
-    _player.durationStream.listen((duration) {
-      if (duration != null) {
-        final current = mediaItem.value;
-        if (current != null) {
-          mediaItem.add(current.copyWith(duration: duration));
-        }
-      }
-    });
   }
 
   void updateMetadata({
@@ -80,7 +82,11 @@ class MyAudioHandler extends BaseAudioHandler {
     }
   }
 
-  void callBackWidget() {}
+  Future<void> dispose() async {
+    await _durationSubscription?.cancel();
+    _durationSubscription = null;
+    await _player.dispose();
+  }
 
   bool get isPlaying => _player.playing;
 

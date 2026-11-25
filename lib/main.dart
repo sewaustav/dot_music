@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dot_music/features/player/audio.dart';
 import 'package:dot_music/features/track_service/load_tracks.dart';
 import 'package:flutter/material.dart';
@@ -12,12 +14,14 @@ void main() async {
   await DatabaseHelper().db;
   await initAudioService();
 
-  runApp(DotMusic());
+  runApp(const DotMusic());
 
-  // initTracksInBackground();
+  unawaited(initTracksInBackground());
 }
 
 class DotMusic extends StatelessWidget {
+  const DotMusic({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(

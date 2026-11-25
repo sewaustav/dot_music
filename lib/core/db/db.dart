@@ -7,14 +7,44 @@ import 'schema.dart';
 
 import 'package:dot_music/core/config.dart';
 
+/// Миграции вынесены из [DatabaseHelper], чтобы их можно было проверить
+/// на in-memory БД в тестах.
+Future<void> migrateDatabase(Database db, int oldVersion, int newVersion) async {
+  // Миграции идемпотентны: база версии 1 могла быть создана как до появления
+  // stat/fav/block таблиц, так и уже с колонкой year.
+  if (oldVersion < 2) {
+    for (final table in [
+      Schema.createStatTable,
+      Schema.createFavTable,
+      Schema.createBlockTable,
+    ]) {
+      await db.execute(_createIfNotExists(table));
+    }
+  }
+  if (oldVersion < 3) {
+    if (!await _hasColumn(db, 'listening_stat', 'year')) {
+      await db.execute(
+        'ALTER TABLE listening_stat ADD COLUMN year INTEGER NOT NULL DEFAULT 0',
+      );
+    }
+  }
+}
 
+String _createIfNotExists(String createStatement) =>
+    createStatement.replaceFirst('CREATE TABLE ', 'CREATE TABLE IF NOT EXISTS ');
+
+Future<bool> _hasColumn(Database db, String table, String column) async {
+  final columns = await db.rawQuery('PRAGMA table_info($table)');
+  return columns.any((info) => info['name'] == column);
+}
 
 class DatabaseHelper {
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
-  static const int databaseVersion = 1;
+  // ВАЖНО: при изменении схемы увеличивайте версию и добавляйте миграцию в _onUpgrade.
+  static const int databaseVersion = 3;
 
   static Database? _db;
 
@@ -42,14 +72,8 @@ class DatabaseHelper {
 
   }
 
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      await db.execute(Schema.createStatTable);
-    }
-    if (oldVersion < 3) {
-      await db.execute('ALTER TABLE listening_stat ADD COLUMN year INTEGER DEFAULT 0');
-    }
-  }
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) =>
+      migrateDatabase(db, oldVersion, newVersion);
 
   Future<List<String>> getAllTables() async {
     final database = await db;

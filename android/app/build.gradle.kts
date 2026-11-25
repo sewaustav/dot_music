@@ -13,6 +13,10 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// Файл android/key.properties не лежит в git. Если его нет, релизная сборка
+// использует debug-подпись только для локальной проверки.
+val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
+
 android {
     namespace = "com.example.dot_music"
     compileSdk = flutter.compileSdkVersion
@@ -36,10 +40,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
+            keyAlias = keystoreProperties.getProperty("keyAlias") ?: ""
+            keyPassword = keystoreProperties.getProperty("keyPassword") ?: ""
             storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
-            storePassword = keystoreProperties.getProperty("storePassword")
+            storePassword = keystoreProperties.getProperty("storePassword") ?: ""
         }
     }
 
@@ -60,7 +64,11 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug") // Будем менять это для подписи
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

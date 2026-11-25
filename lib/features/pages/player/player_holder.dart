@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/features/pages/player/service.dart';
 import 'package:flutter/material.dart';
@@ -14,9 +12,16 @@ class PlayerStateListener {
   PlayerStateListener._internal();
   
   void registerPlayer(PlayerLogic playerLogic) {
-    _playerLogic?.removeListener(_notifyListeners);
+    if (identical(_playerLogic, playerLogic)) return;
+
+    final previous = _playerLogic;
+    previous?.removeListener(_notifyListeners);
+    // Старый PlayerLogic больше не нужен: подписки и колбэк завершения трека
+    // переходят к новому плееру. Иначе они копятся при каждом открытии плеера.
+    previous?.dispose();
+
     _playerLogic = playerLogic;
-    _playerLogic?.addListener(_notifyListeners);
+    _playerLogic!.addListener(_notifyListeners);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _notifyListeners();

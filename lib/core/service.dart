@@ -11,22 +11,20 @@ Future<Map<String, dynamic>?> getTrackInfoByPath(String path) async {
     uriType: UriType.EXTERNAL, // можно INTERNAL, если надо
   );
 
-  // Фильтруем по пути
-  final song = songs.firstWhere(
-    (s) => s.data == path,
-    orElse: () => SongModel({}), // вернёт пустой SongModel если не найдёт
-  );
+  // Ищем по пути без "фиктивного" SongModel: пустая мапа даёт TypeError
+  // при обращении к song.data в версиях on_audio_query.
+  for (final song in songs) {
+    if (song.data != path) continue;
 
-  // Если не нашли — вернём null
-  if (song.data.isEmpty) return null;
+    return {
+      'id': song.id,
+      'title': song.title,
+      'artist': song.artist,
+      'album': song.album,
+      'duration': song.duration,
+      'path': song.data,
+    };
+  }
 
-  // Собираем map
-  return {
-    'id': song.id,
-    'title': song.title,
-    'artist': song.artist,
-    'album': song.album,
-    'duration': song.duration,
-    'path': song.data,
-  };
+  return null;
 }

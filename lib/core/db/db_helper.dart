@@ -66,7 +66,7 @@ class DbHelper {
     """SELECT t.* 
        FROM tracks t
        WHERE t.id NOT IN (SELECT track_id FROM black_list)
-       ORDER BY t.title;"""
+       ORDER BY t.created_at DESC;"""
   );
 
   final updatedSongs = songs.map((song) {

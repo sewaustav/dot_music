@@ -54,11 +54,20 @@ class _PlayerPageState extends State<PlayerPage> {
         onPlaybackCountLoaded: _onPlaybackCountLoaded,
       );
 
-      _logic.init();
       PlayerStateListener().registerPlayer(_logic);
-      
+
       // Подписываемся на обновления нового логики
       _logic.addListener(_onLogicUpdate);
+      _initializePlayer();
+    }
+  }
+
+  Future<void> _initializePlayer() async {
+    try {
+      await _logic.init();
+    } catch (e, st) {
+      logger.e('Failed to initialize player', error: e, stackTrace: st);
+      _logic.setError('Не удалось запустить плеер: $e');
     }
   }
 

@@ -27,10 +27,6 @@ class SongListController {
       _trackCount = count;
       logger.i('✅ Успешно загружено ${loadedSongs.length} треков из БД');
 
-      for (int s = 0; s < 30; s++) {
-        logger.i('DB loaded title: ${loadedSongs[s]["title"]}');
-      }
-      
       return loadedSongs; 
       
     } catch (e, st) {
