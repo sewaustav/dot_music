@@ -1,5 +1,7 @@
-import 'package:dot_music/core/config.dart';
+import 'dart:async';
+
 import 'package:dot_music/design/colors.dart';
+import 'package:dot_music/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 class ListOfSongFromPlaylistControl extends StatelessWidget {
@@ -7,7 +9,7 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
     super.key,
     required this.songs,
     required this.currentIndex,
-    required this.playTrackByList
+    required this.playTrackByList,
   });
 
   final List<Map<String, dynamic>> songs;
@@ -22,7 +24,7 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
       child: DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.1,
-        maxChildSize: 0.9,  
+        maxChildSize: 0.9,
         expand: false,
         builder: (context, scrollController) {
           return Container(
@@ -35,9 +37,7 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
             ),
             child: Column(
               children: [
-
                 GestureDetector(
-
                   onVerticalDragUpdate: (details) {
                     if (details.primaryDelta! > 10) {
                       Navigator.pop(context);
@@ -57,7 +57,7 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Плейлист',
+                          context.l10n.playlistIcon,
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -71,7 +71,6 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
 
                 Expanded(
                   child: ListView.builder(
-
                     physics: const ClampingScrollPhysics(),
                     controller: scrollController,
                     padding: EdgeInsets.zero,
@@ -80,27 +79,32 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
                       final song = songs[index];
                       final isCurrent = index == currentIndex;
 
-                      return Material( 
+                      return Material(
                         color: Colors.transparent,
                         child: InkWell(
                           onTap: () {
-                            logger.i("$song, $index");
-                            playTrackByList(index);
+                            unawaited(playTrackByList(index));
                             Navigator.pop(context);
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        song['title'] ?? 'Без названия',
+                                        song['title'] ?? context.l10n.noName,
                                         style: TextStyle(
                                           fontSize: 16,
-                                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                          fontWeight: isCurrent
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
                                           color: isCurrent ? accent : primary,
                                         ),
                                         maxLines: 1,
@@ -108,7 +112,8 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        song['author'] ?? 'Неизвестный исполнитель',
+                                        song['artist'] ??
+                                            context.l10n.unknownArtist,
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.grey[600],
@@ -119,12 +124,12 @@ class ListOfSongFromPlaylistControl extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                IconButton(
-                                  icon: Icon(Icons.more_vert, color: secondary),
-                                  onPressed: () {
-                                    // TODO: show menu
-                                  },
-                                ),
+                                if (isCurrent)
+                                  Icon(
+                                    Icons.equalizer,
+                                    color: accent,
+                                    size: 20,
+                                  ),
                               ],
                             ),
                           ),

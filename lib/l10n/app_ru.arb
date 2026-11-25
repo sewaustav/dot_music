@@ -1,0 +1,143 @@
+{
+  "@@locale": "ru",
+  "appTitle": "Dot Music",
+  "back": "Назад",
+  "retry": "Повторить",
+  "cancel": "Отмена",
+  "save": "Сохранить",
+  "create": "Создать",
+  "initializing": "Инициализация...",
+  "initializingPlugin": "Инициализация плагина...",
+  "loadingTracks": "Загрузка треков...",
+  "addingTracks": "Добавляем треки в базу...",
+  "loadError": "Ошибка загрузки",
+  "scanLibrary": "Пересканировать библиотеку",
+  "playlists": "Плейлисты",
+  "createPlaylist": "Создать плейлист",
+  "createPlaylistTitle": "Новый плейлист",
+  "playlistNameLabel": "Название плейлиста",
+  "enterPlaylistName": "Введите название плейлиста",
+  "allTracks": "Все треки",
+  "favorites": "Избранное",
+  "statistics": "Статистика",
+  "totalTracks": "Всего: {count}",
+  "@totalTracks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tracksNotFound": "Треки не найдены",
+  "noFavoriteTracks": "Нет избранных треков",
+  "noTracksAvailable": "Нет доступных треков",
+  "favoritesEmpty": "Избранное пусто",
+  "trackListEmpty": "Список треков пуст",
+  "unknownTrack": "Неизвестный трек",
+  "unknownArtist": "Неизвестный исполнитель",
+  "noName": "Без названия",
+  "createdAt": "Создан: {date}",
+  "@createdAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownDate": "неизвестно",
+  "delete": "Удалить",
+  "deletePlaylist": "Удалить плейлист",
+  "openPlaylist": "Открыть плейлист",
+  "removeFromPlaylist": "Удалить из плейлиста",
+  "removeFromFavorites": "Убрать из избранного",
+  "edit": "Редактировать",
+  "play": "Воспроизвести",
+  "pause": "Пауза",
+  "addToPlaylist": "Добавить в плейлист",
+  "trackActions": "Действия с треком",
+  "selectPlaylist": "Выберите плейлист",
+  "coverArt": "Обложка трека",
+  "playlistIcon": "Плейлист",
+  "titleChanged": "Название изменено",
+  "trackAddedToPlaylist": "Трек добавлен в «{playlist}»",
+  "@trackAddedToPlaylist": {
+    "placeholders": {
+      "playlist": {
+        "type": "String"
+      }
+    }
+  },
+  "trackRemovedFromLibrary": "Трек удалён из библиотеки",
+  "updateError": "Ошибка обновления списка",
+  "deleteTrackError": "Ошибка удаления трека",
+  "addToPlaylistError": "Ошибка добавления в плейлист",
+  "repeatOff": "Повтор выключен",
+  "repeatOne": "Повтор трека",
+  "randomOrder": "Случайный порядок",
+  "shuffle": "Перемешать",
+  "previousTrack": "Предыдущий трек",
+  "nextTrack": "Следующий трек",
+  "queue": "Очередь",
+  "playbackCount": "Воспроизведений: {count}",
+  "@playbackCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerStartError": "Не удалось запустить плеер: {error}",
+  "@playerStartError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackError": "Ошибка воспроизведения: {error}",
+  "@playbackError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "favoritesChangedError": "Не удалось изменить избранное",
+  "pageNotFound": "Страница не найдена",
+  "routeOpenError": "Не удалось открыть: {route}",
+  "@routeOpenError": {
+    "placeholders": {
+      "route": {
+        "type": "String"
+      }
+    }
+  },
+  "goHome": "На главную",
+  "globalTopTracks": "🏆 Топ треков",
+  "monthStats": "📅 Статистика за месяц",
+  "yearStats": "📆 Статистика за год",
+  "topTracks": "🏆 Топ треков",
+  "monthlyStatistics": "📅 Статистика за месяц",
+  "yearlyStatistics": "📆 Статистика за год",
+  "allMusicTracks": "Музыкальные треки",
+  "editSongTitle": "Изменить название трека",
+  "topForPeriod": "Топ за {period}",
+  "@topForPeriod": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWithMessage": "Ошибка: {error}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noData": "Нет данных",
+  "globalTop": "🏆 Глобальный топ",
+  "permissionDenied": "Нет доступа к медиатеке"
+}

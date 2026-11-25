@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dot_music/design/colors.dart';
+import 'package:dot_music/l10n/l10n.dart';
 
 class MiniPlayer extends StatefulWidget {
   const MiniPlayer({super.key});
@@ -20,43 +23,26 @@ class _MiniPlayerState extends State<MiniPlayer> {
   }
 
   void _onPlayerChanged() {
-    if (mounted) {
-      Future.delayed(Duration.zero, () {
-        if (mounted) setState(() {});
-      });
-    }
+    if (mounted) setState(() {});
   }
 
   void _onMiniPlayerTap(BuildContext context) {
     final logic = _playerListener.playerLogic;
-    if (logic != null) {
-      final currentPath = _playerListener.currentSong?['path'];
-      final currentIndex = logic.currentSongIndex;
-      final currentPlaylist = logic.playlist;
-      
-      if (_playerListener.isSameTrack(currentPath!, currentIndex, currentPlaylist)) {
-        context.push(
-          "/player",
-          extra: {
-            "songData": currentPath,
-            "index": currentIndex,
-            "playlist": currentPlaylist,
-            "fromMiniPlayer": true, 
-          },
-        );
-      } else {
+    final song = _playerListener.currentSong;
+    if (logic == null || song == null) return;
 
-        context.push(
-          "/player", 
-          extra: {
-            "songData": currentPath,
-            "index": currentIndex,
-            "playlist": currentPlaylist,
-            "fromMiniPlayer": true
-          },
-        );
-      }
-    }
+    unawaited(
+      context.push(
+        '/player',
+        extra: {
+          'songData': song['path'],
+          'index': logic.currentSongIndex,
+          'playlist': logic.playlist,
+          'fromMiniPlayer': true,
+          'returnRoute': GoRouterState.of(context).uri.toString(),
+        },
+      ),
+    );
   }
 
   @override
@@ -68,7 +54,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
     return SafeArea(
       top: false,
       child: SizedBox(
-        height: 72, 
+        height: 72,
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -77,7 +63,7 @@ class _MiniPlayerState extends State<MiniPlayer> {
             borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 offset: const Offset(0, -2),
                 blurRadius: 6,
               ),
@@ -94,7 +80,11 @@ class _MiniPlayerState extends State<MiniPlayer> {
                     width: 48,
                     height: 48,
                     color: secondary,
-                    child: const Icon(Icons.music_note, color: Colors.white),
+                    child: Icon(
+                      Icons.music_note,
+                      color: Colors.white,
+                      semanticLabel: context.l10n.coverArt,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -127,11 +117,14 @@ class _MiniPlayerState extends State<MiniPlayer> {
                   ),
                 ),
                 IconButton(
-                  onPressed: () {
-                    _playerListener.playerLogic?.togglePlayPause();
-                  },
+                  onPressed: () => unawaited(_playerListener.togglePlayPause()),
+                  tooltip: _playerListener.isPlaying
+                      ? context.l10n.pause
+                      : context.l10n.play,
                   icon: Icon(
-                    _playerListener.isPlaying ? Icons.pause_circle : Icons.play_circle,
+                    _playerListener.isPlaying
+                        ? Icons.pause_circle
+                        : Icons.play_circle,
                     color: accent,
                     size: 36,
                   ),

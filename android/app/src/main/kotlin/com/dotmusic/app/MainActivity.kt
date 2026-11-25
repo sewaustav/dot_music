@@ -1,4 +1,4 @@
-package com.example.dot_music
+package com.dotmusic.app
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 import com.ryanheise.audioservice.AudioServicePlugin

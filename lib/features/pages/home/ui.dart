@@ -1,3 +1,4 @@
+import 'package:dot_music/l10n/l10n.dart';
 import 'dart:async';
 
 import 'package:dot_music/design/colors.dart';
@@ -16,7 +17,6 @@ class HomePageUI extends StatefulWidget {
   final VoidCallback onGoToPlaylists;
   final VoidCallback onGoToStatistic;
   final VoidCallback onCreatePlaylist;
-  final VoidCallback onDebug;
   final VoidCallback onScanTracks;
 
   const HomePageUI({
@@ -29,33 +29,33 @@ class HomePageUI extends StatefulWidget {
     required this.onGoToPlaylists,
     required this.onGoToStatistic,
     required this.onCreatePlaylist,
-    required this.onDebug,
     required this.onScanTracks,
   });
-  
-  
 
   @override
   State<HomePageUI> createState() => _HomePageUIState();
 }
 
 class _HomePageUIState extends State<HomePageUI> {
-
-  String fullText = "Dot Music";
+  final String fullText = "Dot Music";
   String displayedText = "";
   bool deleting = false;
   int charIndex = 0;
-  late Timer typingTimer;
-  
-  
+  late final Timer typingTimer;
+  Timer? _pauseTimer;
 
   @override
   void initState() {
     super.initState();
-    typingTimer = Timer.periodic(const Duration(milliseconds: 200), _handleTyping);
+    typingTimer = Timer.periodic(
+      const Duration(milliseconds: 200),
+      _handleTyping,
+    );
   }
 
   void _handleTyping(Timer timer) {
+    if (!mounted) return;
+
     if (!deleting) {
       if (charIndex < fullText.length) {
         setState(() {
@@ -63,10 +63,11 @@ class _HomePageUIState extends State<HomePageUI> {
           charIndex++;
         });
       } else {
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) {
-            setState(() => deleting = true);
-          }
+        // Один отложенный таймер на паузу: последующие тики не создают копии.
+        _pauseTimer ??= Timer(const Duration(milliseconds: 1500), () {
+          _pauseTimer = null;
+          if (!mounted) return;
+          setState(() => deleting = true);
         });
       }
     } else {
@@ -83,6 +84,7 @@ class _HomePageUIState extends State<HomePageUI> {
 
   @override
   void dispose() {
+    _pauseTimer?.cancel();
     typingTimer.cancel();
     super.dispose();
   }
@@ -91,31 +93,36 @@ class _HomePageUIState extends State<HomePageUI> {
     required IconData icon,
     required VoidCallback onPressed,
     required Color color,
+    required String label,
     double size = 56,
   }) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
+    return Tooltip(
+      message: label,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color,
           borderRadius: BorderRadius.circular(16),
-          onTap: onPressed,
-          child: Icon(
-            icon,
-            color: textColor,
-            size: size * 0.45,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onPressed,
+            child: Icon(
+              icon,
+              color: textColor,
+              size: size * 0.45,
+              semanticLabel: label,
+            ),
           ),
         ),
       ),
@@ -133,26 +140,39 @@ class _HomePageUIState extends State<HomePageUI> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    displayedText,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 56,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 2,
-                      height: 1.2,
+                  MediaQuery.withClampedTextScaling(
+                    maxScaleFactor: 1.35,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        displayedText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 56,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
+                          height: 1.2,
+                        ),
+                      ),
                     ),
                   ),
 
                   const SizedBox(height: 8),
 
-                  Text(
-                    "Listen. Dot.",
-                    style: TextStyle(
-                      color: accent,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 1.5,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      "Listen. Dot.",
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: accent,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: 1.5,
+                      ),
                     ),
                   ),
 
@@ -173,8 +193,10 @@ class _HomePageUIState extends State<HomePageUI> {
                     ),
                     onPressed: widget.onGoToStatistic,
                     icon: const Icon(Icons.bar_chart_rounded, size: 24),
-                    label: const Text(
-                      "Statistics",
+                    label: Text(
+                      context.l10n.statistics,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -198,10 +220,12 @@ class _HomePageUIState extends State<HomePageUI> {
                       ),
                       elevation: 4,
                     ),
-                    onPressed: () => context.push("/fav"), 
+                    onPressed: () => context.push("/fav"),
                     icon: const Icon(Icons.favorite_rounded, size: 24),
-                    label: const Text(
-                      "Favorites",
+                    label: Text(
+                      context.l10n.favorites,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -209,13 +233,13 @@ class _HomePageUIState extends State<HomePageUI> {
                       ),
                     ),
                   ),
-                  
-                  _buildIconButton(
-                    icon: Icons.refresh_rounded, 
-                    onPressed: widget.onScanTracks, 
-                    color: Colors.blueAccent, 
-                  ),
 
+                  _buildIconButton(
+                    icon: Icons.refresh_rounded,
+                    onPressed: widget.onScanTracks,
+                    color: Colors.blueAccent,
+                    label: context.l10n.scanLibrary,
+                  ),
                 ],
               ),
             ),
@@ -226,41 +250,32 @@ class _HomePageUIState extends State<HomePageUI> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-
-                _buildIconButton(
-                  icon: Icons.queue_music_rounded,
-                  onPressed: widget.onGoToPlaylists,
-                  color: primary,
+                Flexible(
+                  child: _buildIconButton(
+                    icon: Icons.queue_music_rounded,
+                    onPressed: widget.onGoToPlaylists,
+                    color: primary,
+                    label: context.l10n.playlists,
+                  ),
                 ),
-
-                _buildIconButton(
-                  icon: Icons.add_rounded,
-                  onPressed: widget.onToggleForm,
-                  color: accent,
-                  size: 72,
+                Flexible(
+                  child: _buildIconButton(
+                    icon: Icons.add_rounded,
+                    onPressed: widget.onToggleForm,
+                    color: accent,
+                    size: 72,
+                    label: context.l10n.createPlaylist,
+                  ),
                 ),
-
-                _buildIconButton(
-                  icon: Icons.music_note_rounded,
-                  onPressed: widget.onGoToTracks,
-                  color: secondary,
+                Flexible(
+                  child: _buildIconButton(
+                    icon: Icons.music_note_rounded,
+                    onPressed: widget.onGoToTracks,
+                    color: secondary,
+                    label: context.l10n.allTracks,
+                  ),
                 ),
               ],
-            ),
-          ),
-
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: IconButton(
-                icon: Icon(
-                  Icons.bug_report_outlined,
-                  color: textColor.withOpacity(0.3),
-                  size: 20,
-                ),
-                onPressed: widget.onDebug,
-              ),
             ),
           ),
         ],

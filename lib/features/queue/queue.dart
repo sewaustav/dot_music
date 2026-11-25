@@ -1,63 +1,54 @@
 import 'package:dot_music/core/config.dart';
 
 class QueueService {
-
-
+  /// Ставит выбранный трек первым, сохраняя порядок остальных.
   List<Map<String, dynamic>> makeQueue(
-    List<Map<String, dynamic>> songs, 
-    int index
+    List<Map<String, dynamic>> songs,
+    int index,
   ) {
-
-    logger.i("Index - $index");
-    List<Map<String, dynamic>> queue = List<Map<String, dynamic>>.from(songs);
-
+    final queue = List<Map<String, dynamic>>.from(songs);
     if (index < 0 || index >= queue.length) {
       logger.w('Invalid initial queue index $index for ${queue.length} songs');
       return queue;
     }
 
-    var songsBefore = queue.sublist(0, index);
-    var songsAfter = queue.sublist(index+1);
-
-    final song = queue.removeAt(index);
-    queue = [song, ...songsAfter, ...songsBefore];
-    
-    return queue;
+    final before = queue.sublist(0, index);
+    final after = queue.sublist(index + 1);
+    final current = queue[index];
+    return [current, ...after, ...before];
   }
 
-  void shuffleQueue(
-    List<Map<String, dynamic>> queue, 
-    int currentIndex
-  ) {
+  /// Перемешивает очередь, оставляя текущий трек первым.
+  void shuffleQueue(List<Map<String, dynamic>> queue, int currentIndex) {
     if (queue.isEmpty) return;
-    final safeIndex = currentIndex >= 0 && currentIndex < queue.length ? currentIndex : 0;
-    final song = queue.removeAt(safeIndex);
+    final safeIndex = currentIndex >= 0 && currentIndex < queue.length
+        ? currentIndex
+        : 0;
+    final current = queue.removeAt(safeIndex);
     queue.shuffle();
-    queue.insert(0, song);
-    currentIndex = 0;
+    queue.insert(0, current);
   }
 
-  void addToQueue(
-    List<Map<String, dynamic>> queue, 
-    Map<String, dynamic> song
-  ) {
+  void addToQueue(List<Map<String, dynamic>> queue, Map<String, dynamic> song) {
     queue.add(song);
   }
 
   void insertToQueue(
-    List<Map<String, dynamic>> queue, 
+    List<Map<String, dynamic>> queue,
     Map<String, dynamic> song,
-    int currentIndex
+    int currentIndex,
   ) {
-    queue.insert(currentIndex+1, song);
-    
+    final index = currentIndex < 0
+        ? 0
+        : (currentIndex > queue.length ? queue.length : currentIndex);
+    queue.insert(index + 1, song);
   }
 
   List<Map<String, dynamic>> deleteFromQueue(
-    List<Map<String, dynamic>> queue, 
-    int index
+    List<Map<String, dynamic>> queue,
+    int index,
   ) {
-    queue.removeAt(index);
+    if (index >= 0 && index < queue.length) queue.removeAt(index);
     return queue;
   }
 }

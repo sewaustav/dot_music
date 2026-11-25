@@ -1,44 +1,43 @@
 # Архитектура приложения Dot Music
 
-> Описание по состоянию кода на коммите `173800a` ("small fixes"). В рабочем дереве есть одна незакоммиченная правка — `lib/core/db/db_helper.dart:69` (сортировка треков по `created_at DESC` вместо `title`); она сохранена и в этом документе учтена как текущее состояние.
+> Описание соответствует текущему состоянию рабочего дерева (все изменения P0–P3 применены, но **не закоммичены**). Незакоммиченная правка пользователя в `lib/core/db/db_helper.dart` — `ORDER BY t.created_at DESC` — сохранена.
 >
-> Связанный документ с проблемами и планом работ: [`TODO.md`](TODO.md).
+> План работ и статус каждого пункта: [`TODO.md`](TODO.md).
 
 ---
 
 ## 1. Общая характеристика
 
-Небольшое офлайн-приложение-музыкальный плеер на Flutter. Локальные аудиофайлы сканируются через `on_audio_query`, метаданные и пользовательские данные хранятся в SQLite (`sqflite`), воспроизведение идёт через `just_audio` + `audio_service` с уведомлением/медиа-сессией Android.
+Офлайн-плеер на Flutter: локальные аудиофайлы сканируются через `on_audio_query`, метаданные и пользовательские данные хранятся в SQLite (`sqflite`), воспроизведение идёт через `just_audio` + `audio_service` с медиа-уведомлением Android. Интерфейс — Material 3, две локали (RU — шаблон, EN).
 
 | Подсистема | Технология | Где используется |
 |---|---|---|
 | UI | Flutter Material 3, `setState` | `lib/features/pages/**` |
-| Навигация | `go_router` 16.x | `lib/core/router.dart` |
-| Локальная БД | `sqflite`, `path_provider` | `lib/core/db/**` |
-| Сканирование медиатеки | `on_audio_query` | `lib/features/music_library.dart`, `lib/core/service.dart` |
-| Звук / фон | `just_audio`, `audio_service`, `just_audio_background` (не используется в коде) | `lib/features/player/**` |
-| Разрешения | `permission_handler` (через `on_audio_query.permissionsRequest()`) | `lib/features/music_library.dart` |
+| Навигация | `go_router` 16.x, `PlayerRouteArgs`, `errorBuilder` | `lib/core/router.dart` |
+| Локальная БД | `sqflite` v4, `path_provider`, `sqflite_common_ffi` в тестах | `lib/core/db/**` |
+| Сканирование медиатеки | `on_audio_query`, кэш метаданных | `lib/features/music_library.dart`, `lib/core/service.dart` |
+| Звук / фон | `just_audio`, `audio_service`, `shared_preferences` | `lib/features/player/**` |
+| Разрешения | `permission_handler` | `lib/features/player/audio.dart`, `on_audio_query.permissionsRequest()` |
+| Локализация | `flutter_localizations`, `intl`, ARB + `l10n.yaml` | `lib/l10n/**`, `context.l10n.*` |
 | Логирование | `logger` | `lib/core/config.dart` |
-| DI / состояние | `provider` — только объявлен в `pubspec.yaml`, в коде не применяется | — |
-| Хранение настроек | `shared_preferences` — объявлен, но не используется | — |
+| Состояние | `PlayerLogic extends ChangeNotifier` + синглтоны-шины | `lib/features/pages/player/**` |
+| Build-time утилиты | `flutter_native_splash`, `flutter_launcher_icons` (dev deps) | `pubspec.yaml` |
 
-Официально описаны сборки Android/iOS (`README.md:24-28`); каталоги `linux/`, `macos/`, `windows/` присутствуют, но сценарии их работы в коде не предусмотрены (`UriType.EXTERNAL` в `on_audio_query` — Android-ориентированный путь).
+Официально поддерживаются Android/iOS; каталоги `linux/`, `macos/`, `windows/` присутствуют, но сцена работы с `UriType.EXTERNAL` ориентирован на Android.
 
 ---
 
 ## 2. Точка входа и инициализация
 
-`lib/main.dart:9-18`:
+`lib/main.dart`:
 
-1. `WidgetsFlutterBinding.ensureInitialized()`;
-2. `await DatabaseHelper().db` — ленивое открытие/создание БД;
-3. `await initAudioService()` — создание `MyAudioHandler` и запись его в глобальный `late MyAudioHandler audioHandler` (`lib/features/player/audio.dart:4-14`);
-4. `runApp(const DotMusic())` — `MaterialApp.router(routerConfig: router)` с минимальной темой (`useMaterial3: true`, только `appBarTheme.iconTheme`);
-5. `unawaited(initTracksInBackground())` — автосканирование библиотеки сразу после запуска UI (`lib/main.dart:17`).
+1. `WidgetsFlutterBinding.ensureInitialized()`.
+2. `await DatabaseHelper().db` — открытие/создание БД версии 4.
+3. `await initAudioService()` — на Android сначала `Permission.notification.request()`, затем `AudioService.init<MyAudioHandler>()`; результат сохраняется в глобальный `late AudioController audioHandler` (`lib/features/player/audio.dart`).
+4. `runApp(const DotMusic())`. `DotMusic.build()` один раз передаёт локализацию в `TrackLoadingState.l10n` (прогресс сканирования показывается вне виджетов), затем `MaterialApp.router` получает `localizationsDelegates`, `supportedLocales`, тему с палитрой `design/colors.dart`, `routerConfig: router` и `title: context.l10n.appTitle`.
+5. `unawaited(initTracksInBackground())` — автосканирование после старта UI; кнопка на главной остаётся как «пересканировать».
 
-Кнопка на главной (`lib/features/pages/home/home.dart:76-80`) остаётся как «пересканировать» и защищена флагом `TrackLoadingState.isLoading`. `initTracksInBackground()` сбрасывает старую ошибку/прогресс перед новым запуском (`load_tracks.dart:24-32`).
-
-Перед `AudioService.init()` на Android запрашивается `POST_NOTIFICATIONS` (`lib/features/player/audio.dart:8-14`) — без этого ongoing-уведомление и foreground service не работают на Android 13/14+.
+Bundle id: `com.dotmusic.app` (prod, iOS), `com.dotmusic.app.dev` (dev Android), канал уведомлений `com.dotmusic.app.channel.audio`.
 
 ---
 
@@ -46,185 +45,161 @@
 
 ```text
 lib/
-├── main.dart                     # точка входа, MaterialApp.router, тема
+├── main.dart                      # точка входа, локализация, тема, routerConfig
+├── l10n/
+│   ├── app_ru.arb                 # шаблон (RU)
+│   ├── app_en.arb                 # EN
+│   ├── l10n.dart                  # export AppLocalizations + BuildContext.l10n
+│   └── app_localizations*.dart    # генерируются flutter gen-l10n
 ├── core/
-│   ├── config.dart               # единственный logger
-│   ├── router.dart               # глобальный GoRouter, все маршруты
-│   ├── service.dart              # поиск метаданных трека через on_audio_query
+│   ├── config.dart                # общий logger
+│   ├── router.dart                # GoRouter, PlayerRouteArgs, errorBuilder
+│   ├── service.dart               # кэш метаданных на основе одного querySongs
 │   └── db/
-│       ├── db.dart               # DatabaseHelper + migrateDatabase (v1→v3)
-│       ├── schema.dart           # DDL всех шести таблиц
-│       ├── db_helper.dart        # DbHelper: запросы к tracks, плейлистам
-│       ├── crud.dart             # PlaylistService, PlaylistView, SongService
-│       ├── fav_service.dart      # избранное
-│       ├── block_service.dart    # чёрный список
-│       ├── stat_crud.dart        # StatRepository: счётчики прослушиваний
-│       ├── stat_service.dart     # выборки статистики
-│       └── db_test.dart          # пока пустой файл (0 байт)
+│       ├── db.dart                # DatabaseHelper (v4), migrateDatabase, reset/delete
+│       ├── schema.dart            # DDL, UNIQUE/NOT NULL ограничения
+│       ├── db_helper.dart         # DbHelper: выборки tracks/плейлистов
+│       ├── crud.dart              # PlaylistService, PlaylistView, SongService
+│       ├── fav_service.dart       # FavoriteService + ValueNotifier revision
+│       ├── block_service.dart     # чёрный список
+│       ├── stat_crud.dart         # StatRepository (атомарный UPSERT)
+│       └── stat_service.dart      # выборки статистики
 ├── design/
-│   ├── colors.dart               # 6 констант Color (не подключены к ThemeData)
-│   └── art.dart                  # генератор градиентной обложки в temp
+│   ├── colors.dart                # палитра, подключена к ThemeData
+│   └── art.dart                   # генератор уникальной градиентной обложки
 ├── features/
-│   ├── music_library.dart        # TrackLoaderService: разрешения + querySongs + запись в БД
+│   ├── music_library.dart         # TrackLoaderService: разрешения + scan + вставка
 │   ├── player/
-│   │   ├── audio.dart            # глобальный audioHandler, AudioService.init
-│   │   ├── audio_handler.dart    # MyAudioHandler: одна подписка на durationStream
-│   │   ├── player_control.dart   # неиспользуемые хелперы next/prev/random
-│   │   ├── player_manager.dart   # пустой файл
-│   │   └── play_music.dart       # неиспользуемый второй AudioPlayer
-│   ├── queue/queue.dart          # QueueService: ротация/шафл/вставка
+│   │   ├── audio_controller.dart  # контракт аудиодвижка (DI/тесты)
+│   │   ├── audio.dart             # глобальный AudioController, AudioService.init
+│   │   └── audio_handler.dart     # MyAudioHandler: очередь, media session, преfs
+│   ├── queue/queue.dart           # QueueService: ротация/шафл
 │   ├── track_service/
-│   │   ├── load_tracks.dart      # TrackLoadingState + initTracksInBackground
-│   │   ├── delete_service.dart   # обёртка над BlockService
-│   │   └── edit_info.dart        # диалог переименования трека
-│   └── pages/                    # экраны и их UI-виджеты
-│       ├── home/                 # HomePage, анимированный заголовок, форма плейлиста
-│       ├── song_list/            # список всех треков, меню, диалог плейлиста
-│       ├── playlist/             # список плейлистов и треки плейлиста
-│       ├── favorite_songs/       # избранное
-│       ├── player/               # PlayerPage, MiniPlayer, UI, service.dart (465 строк)
-│       └── stat/                 # top/month/year отчёты
-android/                          # flavors dev/prod, MainActivity, AudioService в манифесте
-ios/                              # Runner, Info.plist (UIBackgroundModes audio), Podfile
-test/
-├── queue_test.dart               # guards очереди, пустой/невалидный индекс
-├── db_migration_test.dart        # миграции v1→v3 на in-memory БД (sqflite_common_ffi)
-└── widget_test.dart              # минимальный smoke-тест
-pubspec.yaml                      # Dart ^3.8.1, Flutter-зависимости + sqflite_common_ffi (dev)
-analysis_options.yaml             # стандартный flutter_lints без ужесточений
+│   │   ├── load_tracks.dart       # TrackLoadingState + initTracksInBackground
+│   │   ├── delete_service.dart    # обёртка над BlockService
+│   │   └── edit_info.dart         # диалог переименования (только возвращает имя)
+│   └── pages/
+│       ├── home/                  # HomePage, анимированный заголовок, форма плейлиста
+│       ├── song_list/             # список треков, SongCard, TrackTile, диалог плейлиста
+│       ├── playlist/              # список плейлистов и треки плейлиста
+│       ├── favorite_songs/        # избранное
+│       ├── player/                # PlayerPage, MiniPlayer, MiniPlayerScaffold,
+│       │                          # PlayerLogic + 5 менеджеров, UI/UI-виджеты
+│       └── stat/                  # top/month/year отчёты, StatList
+android/                            # flavors dev/prod, манифест, подпись из key.properties,
+                                    # MainActivity в пакете com.dotmusic.app (совпадает с namespace)
+ios/                                # Runner, Info.plist, Podfile
+.github/workflows/ci.yml            # JDK 17, pub get → analyze → format → test → build apk
+test/                               # 8 файлов тестов + fake аудиоконтроллер
+l10n.yaml                           # генерация AppLocalizations из app_ru.arb
+analysis_options.yaml               # flutter_lints + 4 ужесточенных правила
 ```
+
+Удалены неиспользуемые `player_control.dart`, `play_music.dart`, `player_manager.dart`, пустой `lib/core/db/db_test.dart` и сгенерированный Android-отчёт; `montly_stat.dart` переименован в `monthly_stat.dart`.
 
 ---
 
 ## 4. Слои и потоки данных
 
-У проекта нет строгого разделения на слои: есть «почти слой» данных, «почти сервисы» и экраны с локальным состоянием. Ключевые связи:
-
 ```mermaid
 flowchart LR
     A["on_audio_query (media store)"] --> B["TrackLoaderService<br/>features/music_library.dart"]
-    B --> C[("SQLite my_database.db<br/>core/db/*")]
+    B --> C[("SQLite my_database.db v4<br/>core/db/*")]
     C --> D["SongList / Playlist / Favorites / Stat<br/>StatefulWidget + setState"]
     D --> E["PlayerLogic (ChangeNotifier)<br/>pages/player/service.dart"]
-    E --> F["MyAudioHandler<br/>features/player/audio_handler.dart"]
-    F --> G["just_audio AudioPlayer"]
-    F --> H["MediaSession / уведомление<br/>AudioService"]
-    E -. "PlayerStateListener singleton" .-> I["MiniPlayer / уведомление"]
-    E --> C
+    E --> M["Player*Manager (audio/queue/favorite/track)"]
+    M --> AC["AudioController<br/>MyAudioHandler"]
+    AC --> G["just_audio AudioPlayer"]
+    AC --> H["MediaSession / уведомление<br/>AudioService"]
+    AC -. "SharedPreferences" .-> R["очередь/индекс между запусками"]
+    E -. "PlayerStateListener singleton" .-> I["MiniPlayer / кнопки уведомления"]
+    C -. "FavoriteService.revision" .-> D
 ```
 
-### Нарушения слоёв
-
-- `lib/core/db/crud.dart:3` импортирует `lib/core/service.dart`, то есть слой БД зависит от platform/permission-слоя (`on_audio_query`, запрос разрешений).
-- `lib/features/pages/player/service.dart:4,441-447` (UI-слой) напрямую работает с `sqflite.Database` и выполняет SQL через `StatRepository`.
-- `lib/features/player/audio_handler.dart:5` (аудиослой) зависит от `PlayerStateListener`, определённого в `lib/features/pages/player/player_holder.dart` (UI-слой).
-- Вместо DI — глобальные синглтоны: `DatabaseHelper._instance`/`_db` (`db.dart:13-19`), `audioHandler` (`audio.dart:4`), `PlayerStateListener` (`player_holder.dart:8-9`), `_trackLoader` + статический `TrackLoadingState` (`load_tracks.dart:5-13`), `OnAudioQuery` в двух местах, глобальный `router` (`router.dart:15`).
+Остались известные зависимости «снизу вверх»: `crud.dart` импортирует `core/service.dart` (platform-слой), `audio_handler.dart` знает о `PlayerStateListener` из UI-слоя, `PlayerLogic` работает с БД через менеджер. Вместо полноценного DI — синглтоны (`DatabaseHelper`, `FavoriteService`, `PlayerStateListener`, `_trackLoader`, `TrackLoadingState`, `router`). Исключение: аудиоконтроллер вынесен за интерфейс `AudioController` и подменяется в тестах; `PlayerLogic` принимает его в конструкторе.
 
 ---
 
 ## 5. Модель данных
 
-База — `my_database.db` в `getApplicationDocumentsDirectory()` (`lib/core/db/db.dart:27-43`). `onCreate` выполняет DDL из `Schema.createTables` (`lib/core/db/schema.dart:64-71`).
+База — `my_database.db` в `getApplicationDocumentsDirectory()`. `onCreate` выполняет `Schema.createTables`. Версия схемы — **4**.
 
-| Таблица | Поля | Связи / примечания |
+| Таблица | Ключевые поля | Ограничения |
 |---|---|---|
-| `tracks` | `id`, `title`, `artist`, `path`, `playback_count`, `created_at` | `playback_count` nullable, нет `UNIQUE(path)` |
-| `playlists` | `id`, `name`, `created_at` | нет `UNIQUE(name)` |
-| `playlist_tracks` | `playlist_id`, `track_id`, `added_at` | PK `(playlist_id, track_id)`, FK с `ON DELETE CASCADE` |
-| `listening_stat` | `track_id`, `month`, `year`, `playback_count` | FK на `tracks`; нет `UNIQUE(track_id, month, year)` |
-| `favorite_songs` | `track_id` | FK на `tracks`; нет `UNIQUE(track_id)` |
-| `black_list` | `track_id`, `path` | FK на `tracks`; нет `UNIQUE(track_id)` |
+| `tracks` | `id`, `title`, `artist`, `path`, `playback_count`, `created_at` | `path UNIQUE`, `playback_count NOT NULL DEFAULT 0` |
+| `playlists` | `id`, `name`, `created_at` | `name UNIQUE` |
+| `playlist_tracks` | `playlist_id`, `track_id`, `added_at` | PK `(playlist_id, track_id)`, FK `ON DELETE CASCADE` |
+| `listening_stat` | `track_id`, `month`, `year`, `playback_count` | `UNIQUE(track_id, month, year)`, FK на `tracks` |
+| `favorite_songs` | `track_id` | `UNIQUE(track_id)`, FK на `tracks` |
+| `black_list` | `track_id`, `path` | `UNIQUE(track_id)`, FK на `tracks` |
 
-`onOpen` включает `PRAGMA foreign_keys = ON` (`db.dart:38-40`).
+Миграции вынесены в `migrateDatabase(db, oldVersion, newVersion)`: v1→v2 создаёт таблицы, v2→v3 добавляет `year` (только если колонки нет), v3→v4 чистит дубли и добавляет уникальные индексы. Функция идемпотентна и покрыта тестами. `resetDatabase()` дропает и пересоздаёт схему, `deleteDatabaseFile()` предварительно закрывает БД, `DbHelper.getTrackInfoById()` возвращает `null` для битых записей.
 
-Контракты выборок не унифицированы: `DbHelper.getAllTracks()` переименовывает `id → track_id` и исключает чёрный список (`db_helper.dart:62-84`), `PlaylistView.getSongsFromPlaylist()` возвращает `track_id` + `playlist_id` (`crud.dart:74-104`), `DbHelper.getTrackInfoById()` возвращает только три поля (`db_helper.dart:44-60`). В коде повсюду используются `Map<String, dynamic>` и sentinel-значения: `0` = все треки, `-1` = избранное, `>0` = id плейлиста (`pages/player/service.dart:408-438`).
-
-Версия БД поднята до `3` (`db.dart:47`). Логика миграций вынесена в публичную функцию `migrateDatabase(db, oldVersion, newVersion)` (`db.dart:12-31`) и покрыта тестами на in-memory БД: v1→v3 создаёт недостающие таблицы и добавляет `year`, повторное применение не создаёт дубли колонки. `lib/core/db/db_test.dart` по-прежнему пустой — тесты лежат в `test/db_migration_test.dart`.
+Выборки (`DbHelper.getAllTracks()` с `ORDER BY t.created_at DESC` и без чёрного списка, `PlaylistView.getSongsFromPlaylist()`, `getTrackInfoById()`) возвращают `Map<String, dynamic>`. Sentinel-значения для «исходного списка»: `0` — все треки, `-1` — избранное, `>0` — id плейлиста.
 
 ---
 
 ## 6. Управление состоянием
 
-Фактически используется четыре независимых механизма:
+- **`PlayerLogic extends ChangeNotifier`** (`pages/player/service.dart`) — единственный источник правды о плеере. Состояние лежит в `PlayerState` (`player_state.dart`): songs/originalSongs, currentSongIndex, trackId, playbackCount, позиция/длительность, isPlaying, isFavorite, repeatMode, error. `notify()` — единственная обёртка над `notifyListeners()` и не вызывает его после `dispose()`.
+- **Менеджеры** (`player_*_manager.dart`): аудио (потоки позиции/длительности, переключение треков, completion), очередь (initial rotate, repeat/shuffle), избранное (revision + статус текущего трека), треки (загрузка списка, инкремент статистики, удаление).
+- **`PlayerStateListener`** (`player_holder.dart`) — синглтон-владелец активного `PlayerLogic`: мини-плеер и кнопки уведомления читают состояние через него; при регистрации нового плеера старый dispose'ится. Закрытие `PlayerPage` снимает только локальный listener — плеер продолжает играть в мини-плеере и фоне.
+- **`FavoriteService.revision`** (`ValueNotifier<int>`) — шина изменений избранного между экранами и плеером.
+- **`TrackLoadingState`** — статический прогресс сканирования; локализация передаётся в него один раз из `DotMusic.build()`.
+- `setState` в экранах используется для локального UI и защищён `mounted`; `BuildContext` после await — через `context.mounted`.
 
-1. **`setState`** в StatefulWidget-страницах — загрузка списков, forms, удаление, избранное (`home.dart`, `music_list_page.dart`, `playlist.dart`, `playlist_list.dart`, `favorite_songs_page.dart`, `play_track.dart`, `mini_player.dart`).
-2. **`PlayerLogic extends ChangeNotifier`** (`pages/player/service.dart:17-104`) — центральное состояние плеера: songs, currentSongIndex, isPlaying, isFavorite, repeatMode, позиция/длительность, счётчик. Состоит из пяти «менеджеров» в том же файле: `PlayerState`, `PlayerAudioManager`, `PlayerQueueManager`, `PlayerFavoriteManager`, `PlayerTrackManager`.
-3. **Колбэки `refreshUI` / `refreshBtn` / `onPlaybackCountLoaded`** (`service.dart:18-20`), которые передаются из `PlayerPage` и дублируют `notifyListeners()`.
-4. **Синглтоны/статические шины**: `PlayerStateListener` (`player_holder.dart`) для мини-плеера и кнопок уведомления; `TrackLoadingState` (`load_tracks.dart`) для прогресса сканирования.
+Жизненный цикл плеера: `PlayerPage.initState()` либо переиспользует `PlayerLogic` из `PlayerStateListener` (`fromMiniPlayer: true`), либо создаёт новый и вызывает `await _logic.init()` с обработкой ошибки. `init()`: загрузка списка → выбор индекса (включая `initialPath`) → ротация очереди → `syncQueue()` (media session) → статус избранного → подписки на потоки → `playFromFile()` → инкремент счётчика конкретного трека. Повтор: `off → one → random → off`; `random` перемешивает очередь и выбирает случайный трек.
 
-`provider` и `shared_preferences` объявлены в `pubspec.yaml:23,29`, но не используются: нет `ChangeNotifierProvider`, очередь и позиция не сохраняются между запусками.
-
-### Жизненный цикл плеера
-
-- `PlayerPage.initState()` создаёт `PlayerLogic` и вызывает `_logic.init()` без `await` (`play_track.dart:49-58`).
-- `init()` (`service.dart:49-65`): загрузка списка по `playlist` → ротация очереди → инкремент счётчика → проверка избранного → подписки на потоки → `playFromFile()` → `refreshUI()` + `notifyListeners()`.
-- Очередь — не список «следующих», а ротация: `[текущий, ...после, ...до]` (`queue/queue.dart:6-21`); `currentSongIndex` всегда `0`. Режимы повтора: `off → one → random → off` (`service.dart:324-353`); `random` на практике вызывает обычный следующий трек (`:284-286`).
-- `MiniPlayer` встроен как `bottomNavigationBar` на основных экранах и подписан на `PlayerStateListener`; `PlayerLogic` и `PlayerStateListener` — два источника правды о текущем треке.
+`AudioController` (`lib/features/player/audio_controller.dart`) фиксируется в `PlayerLogic` при создании: dispose снимает колбэки именно с того контроллера, на котором они были поставлены, даже если глобальный `audioHandler` к тому моменту заменён.
 
 ---
 
 ## 7. Навигация
 
-Глобальный `GoRouter` (`lib/core/router.dart:15-77`):
+`GoRouter` (`lib/core/router.dart`) с маршрутами `/`, `/list`, `/playlists`, `/listpl`, `/player`, `/fav`, `/statistic`, `/statistic/top`, `/statistic/month`, `/statistic/year`.
 
-| Маршрут | Экран | Аргументы (`state.extra`) |
-|---|---|---|
-| `/` | `HomePage` | — |
-| `/list` | `SongListPage` | — |
-| `/playlists` | `PlaylistPage` | `int` id плейлиста |
-| `/listpl` | `PlaylistsListPage` | — |
-| `/player` | `PlayerPage` | `Map`: index, playlist, path, fromMiniPlayer |
-| `/statistic`, `/statistic/top`, `/statistic/month`, `/statistic/year` | экраны статистики | доп. значения для month/year |
-| `/fav` | `FavoriteSongsPage` | — |
-
-Аргументы передаются через `extra` с прямыми приведениями (`as int`, `as Map<String, dynamic>`, `as bool`) без проверки; `errorBuilder` отсутствует. Навигация смешанная: `context.push` для переходов вперёд, `context.go` для «назад», а в `playlist_list.dart:1,54` — прямой вызов глобального `router.go("/")` (циклический импорт с `core/router.dart`). Кнопка «назад» в плеере выбирает маршрут по `playlist` (`play_track.dart:113-120`), а не по фактическому предыдущему экрану.
+- `PlayerRouteArgs.parse()` безопасно читает `extra`, query и path-параметры: неверные типы получают fallback, `returnRoute` позволяет вернуться точно на предыдущий экран. Чистая функция тестируется без виджетов.
+- `errorBuilder` показывает локализованную заглушку с кнопкой «На главную».
+- Навигация: `context.push` вперёд, `context.pop()`/`context.go(returnRoute)` назад. Прямых вызовов глобального `router` из экранов нет — циклический импорт устранён.
 
 ---
 
-## 8. Сканирование библиотеки и фоновая работа
+## 8. Сканирование и фоновая работа
 
-1. `initTracksInBackground()` (`track_service/load_tracks.dart:22-61`) обновляет статический `TrackLoadingState`, вызывает `TrackLoaderService.initializePlugin()` (фактически — `Future.delayed(500ms)`), затем `loadSongs()`.
-2. `TrackLoaderService.loadSongs()` (`music_library.dart:23-63`) проверяет/запрашивает разрешения, вызывает `querySongs(uriType: UriType.EXTERNAL)` и возвращает `List<SongModel>`.
-3. `addMissingSongsToDbWithProgress()` (`:65-95`) для каждого файла делает `getSongByPath` → `addSongToDb`. Внутри `SongService.addSongToDb` (`crud.dart:142-151`) снова вызывается `getTrackInfoByPath()`, который **при каждом вызове** запрашивает разрешения и делает `querySongs()` (`core/service.dart:5-21`) — O(N) method-channel вызовов при сканировании.
-4. Статус/ошибка сканирования живут в глобальных статических полях и не очищаются при повторном запуске.
+1. `initTracksInBackground()` (`track_service/load_tracks.dart`) защищён `isLoading`-guard и `_scanGeneration`: старый проход не перезаписывает прогресс нового; в начале сбрасываются error/счётчики. Рассылка слушателям идёт по копии списка.
+2. `TrackLoaderService.initializePlugin()` → `loadSongs()` (один вызов `permissionsRequest()` + `querySongs`), метаданные кэшируются в `core/service.dart`.
+3. `addMissingSongsToDbWithProgress()` добавляет только недостающие треки, передаёт `metadata` в `SongService.addSongToDb()`; ошибка одного трека не прерывает сканирование.
+4. `MyAudioHandler` хранит очередь и индекс, пишет их в `SharedPreferences` и восстанавливает при старте; `MediaItem.queue`/`PlaybackState.queueIndex` заполнены, `skipToNext/Previous` в уведомлении работают без открытого `PlayerPage`. `onTaskRemoved()` отсутствует — ongoing-уведомление не останавливает музыку. Параметры `artworkPath`/`artworkUri` и методы `updateMetadata()`/`customAction()` определены в контракте, но пока не вызываются плеером.
 
-### Аудиосервис
+Платформы:
 
-- `MyAudioHandler extends BaseAudioHandler` (`audio_handler.dart:8-25`) содержит собственный `AudioPlayer`, транслирует `playbackEventStream` в `playbackState`, обрабатывает `ProcessingState.completed` через `onTrackComplete`.
-- `playFromFile()` (`:33-65`) кеширует градиентную обложку (`design/art.dart`), кладёт `MediaItem`, вызывает `setFilePath` + `play`.
-- `skipToNext/Previous` (`:147-154`) делегируют в `PlayerStateListener` — то есть работают только когда экран плеера создал `PlayerLogic`; после смерти процесса очередь не восстанавливается.
-- `onTaskRemoved()` (`:142-144`) останавливает воспроизведение несмотря на `androidNotificationOngoing: true`.
-- Параметры `artworkPath`/`artworkUri`, `updateMetadata()` и `customAction()` не задействованы; `queueIndex` в `PlaybackState` жёстко равен `0`.
-
-### Платформенные особенности
-
-- **Android**: `MainActivity extends FlutterFragmentActivity` и подключает `AudioServicePlugin` (`android/app/src/main/kotlin/.../MainActivity.kt`); flavor'ы `dev`/`prod` в `android/app/build.gradle.kts:45-57`; манифест объявляет разрешения на storage/audio, `FOREGROUND_SERVICE`, `WAKE_LOCK`, сервис `AudioService` и `MediaButtonReceiver`.
-- **iOS**: `AppDelegate.swift` — стандартный шаблон; в `Info.plist` добавлены `UIBackgroundModes = audio` и `NSAppleMusicUsageDescription`; `ios/Podfile` восстановлен из шаблона Flutter, так что `pod install` из `README.md:66-70` теперь выполним.
-- **Десктоп**: каталоги есть, но поддержка не реализована.
+- **Android**: `MainActivity extends FlutterFragmentActivity`, flavor'ы `dev`/`prod`, разрешения на storage/audio, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `POST_NOTIFICATIONS`, `WAKE_LOCK`, сервис `AudioService` и `MediaButtonReceiver`; release подписывается из `android/key.properties` с fallback на debug для локальной сборки.
+- **iOS**: `Podfile` восстановлен, `Info.plist` содержит `UIBackgroundModes = audio` и `NSAppleMusicUsageDescription`, bundle id `com.dotmusic.app`.
+- **Десктоп**: каталоги есть, поддержка не реализована.
 
 ---
 
 ## 9. Тесты и качество кода
 
-- `flutter test --no-pub`: **9 тестов проходят** — `test/queue_test.dart` (границы очереди), `test/db_migration_test.dart` (v1→v3, идемпотентность) и smoke-тест в `test/widget_test.dart`. `lib/core/db/db_test.dart` остаётся пустым; тесты миграций живут в `test/`.
-- `flutter analyze --no-pub`: **0 ошибок, 62 замечания** — в основном 28 предупреждений (14 вызовов × 2 правила: `invalid_use_of_visible_for_testing_member` / `invalid_use_of_protected_member`) в `pages/player/service.dart` (вызовы `notifyListeners()` вне сабкласса), 28 `withOpacity` deprecated, `use_build_context_synchronously` в `music_list_page.dart:140` и `edit_info.dart:62`, отсутствие `key` у публичных виджетов и т.д. Неиспользуемый импорт в `main.dart` убран.
-- `dart format --output=none --set-exit-if-changed lib test`: **43 из 48 файлов** требуют форматирования.
-- `analysis_options.yaml` содержит только стандартный `flutter_lints`; строгие правила (`unawaited_futures`, `discarded_futures`, `strict-casts`, `avoid_dynamic_calls`) не включены, поэтому многие асинхронные ошибки и unsafe cast статически не ловятся.
-
-Подробный список дефектов, приоритеты и предложения по исправлению — в [`TODO.md`](TODO.md).
+- `flutter analyze --no-pub`: `No issues found!`. В `analysis_options.yaml` включены `unawaited_futures`, `discarded_futures`, `avoid_dynamic_calls`, `use_build_context_synchronously`. `strict-casts` не используется: текущий SDK отклоняет опцию (`unsupported_option_with_legal_values`).
+- `flutter test --no-pub`: **23 теста** — очередь, миграции/статистика БД, разбор аргументов роутера, рассылка `TrackLoadingState`, `PlayerLogic` (очередь/repeat/media session/dispose/внешний индекс), владение плеером в `PlayerStateListener`, `TrackLoaderService`, smoke-виджет. Unit-тесты плеера используют `FakeAudioController` вместо нативных плагинов.
+- `dart format --output=none --set-exit-if-changed lib test`: `0 changed`; та же проверка есть в `.github/workflows/ci.yml`.
+- `flutter gen-l10n` генерирует `AppLocalizations` из ARB; RU — шаблон, EN — перевод.
+- Обе Android-сборки проходят с **JDK 17**: `flutter build apk --flavor dev` и `flutter build apk --release --flavor prod` дают `app-dev-release.apk` / `app-prod-release.apk` (~43 МБ). С системной Java 27 Gradle 9 падает на `jlink` ещё до Dart-компиляции. Лимиты JVM заданы в `android/gradle.properties` (`-Xmx2G` для Gradle, `-Xmx1536m` для Kotlin), JDK 17 подключён в CI. iOS-сборка не проверялась (нет macOS/Xcode).
 
 ---
 
 ## 10. Как запускать и проверять
 
 ```bash
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk   # Android-сборка требует JDK 17
 flutter pub get
-flutter analyze --no-pub          # 0 ошибок; 28 предупреждений + info-замечания
-flutter test --no-pub             # 9 тестов, зелёные
-flutter run --flavor dev          # Android
+flutter gen-l10n                        # ARB -> lib/l10n/app_localizations*.dart
+flutter analyze --no-pub                # No issues found!
 dart format --output=none --set-exit-if-changed lib test
+flutter test --no-pub                   # 23 теста
+flutter run --flavor dev               # Android
+flutter build apk --flavor dev         # app-dev-release.apk
 ```
 
-Android-релиз подписывается ключом из `android/key.properties` (файл в `.gitignore`); если файла нет, `buildTypes.release` fallback'ится на debug-подпись только для локальной сборки. Bundle id пока остаётся `com.example.dot_music*` — его смена требует решения по миграции данных существующих пользователей (см. `TODO.md`, P0-9).
-
-В текущем окружении `flutter build apk --flavor dev` падает ещё до компиляции Dart из-за несовместимости Gradle/Java 27 (`jlink`), это не связано с кодом приложения. iOS-сборку здесь проверить нельзя (нет macOS/Xcode), но `ios/Podfile` и `Info.plist` приведены в рабочее состояние.
+iOS: `cd ios && pod install`, затем сборка в Xcode (требуется macOS). Ключ подписи и `android/key.properties` находятся в `.gitignore`. Все изменения пока остаются в рабочем дереве: коммит и пуш выполняются только по отдельной просьбе.

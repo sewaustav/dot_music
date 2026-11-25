@@ -1,4 +1,3 @@
-// stat_repository.dart
 import 'package:sqflite/sqflite.dart';
 
 class StatRepository {
@@ -12,59 +11,29 @@ class StatRepository {
       [trackId],
     );
 
-    if (result.isEmpty) {
-      return 0;
-    }
-
-    return result.first['playback_count'] as int;
+    if (result.isEmpty) return 0;
+    return (result.first['playback_count'] as int?) ?? 0;
   }
 
-  Future<void> updateTrackPlaybackCount(int trackId, int newCount) async {
-    await db.rawUpdate(
-      'UPDATE tracks SET playback_count = ? WHERE id = ?',
-      [newCount, trackId],
-    );
-  }
-
-  Future<bool> monthlyStatExists(int trackId, int month, int year) async {
-    final res = await db.rawQuery(
-      'SELECT 1 FROM listening_stat WHERE track_id = ? AND month = ? AND year = ?',
-      [trackId, month, year],
-    );
-    return res.isNotEmpty;
-  }
-
-  Future<void> incrementMonthlyStat(int trackId, int month, int year) async {
-    await db.rawUpdate(
-      '''
-      UPDATE listening_stat
-      SET playback_count = playback_count + 1
-      WHERE track_id = ? AND month = ? AND year = ?
-      ''',
-      [trackId, month, year],
-    );
-  }
-
-  Future<void> createMonthlyStat(int trackId, int month, int year) async {
-    await db.rawInsert(
-      '''
-      INSERT INTO listening_stat (track_id, month, year, playback_count)
-      VALUES (?, ?, ?, 1)
-      ''',
-      [trackId, month, year],
-    );
-  }
-
+  /// Один шаг БД: инкремент счётчика и upsert месячной статистики.
+  /// Транзакция исключает потерю инкрементов при параллельных вызовах.
   Future<void> registerPlayback(int trackId) async {
-    final currentCount = await getPlaybackCount(trackId);
-    await updateTrackPlaybackCount(trackId, currentCount + 1);
-
     final now = DateTime.now();
-    final exists = await monthlyStatExists(trackId, now.month, now.year);
-    if (exists) {
-      await incrementMonthlyStat(trackId, now.month, now.year);
-    } else {
-      await createMonthlyStat(trackId, now.month, now.year);
-    }
+    await db.transaction((txn) async {
+      await txn.rawUpdate(
+        'UPDATE tracks SET playback_count = COALESCE(playback_count, 0) + 1 '
+        'WHERE id = ?',
+        [trackId],
+      );
+      await txn.rawInsert(
+        '''
+        INSERT INTO listening_stat (track_id, month, year, playback_count)
+        VALUES (?, ?, ?, 1)
+        ON CONFLICT(track_id, month, year) DO UPDATE SET
+          playback_count = playback_count + 1
+        ''',
+        [trackId, now.month, now.year],
+      );
+    });
   }
 }

@@ -1,108 +1,69 @@
-
-<div align="center">
-
 # Dot Music
 
-**Open-source music player built with Flutter**  
-Clean, fast, and fully offline — your music, your way.
+Офлайн-плеер музыки на Flutter: библиотека треков в SQLite, воспроизведение через `just_audio`, фоновое воспроизведение и медиа-уведомления через `audio_service`.
 
-<br/>
+Поддерживаются Android и iOS. Каталоги `linux/`, `macos/` и `windows/` есть, но десктопная поддержка не реализована.
 
+## Разработка
 
-
-![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
-![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)
-![just_audio](https://img.shields.io/badge/just_audio-4CAF50?style=for-the-badge&logo=audiomack&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
-![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![iOS](https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=ios&logoColor=white)
-
-</div>
-
----
-
-## 🚀 Beta Available Now!
-
-**Android** and **iOS** beta versions are live!  
-**Linux** and **Windows** builds — *coming soon*.
-
----
-
-## 📱 Build from Source
-
-### Prerequisites
-
-Make sure you have **Flutter** installed:
+Нужны Flutter stable (SDK Dart ^3.8.1) и **JDK 17** для Android-сборки. Если в системе по умолчанию стоит другая версия Java, укажите 17 явно:
 
 ```bash
-# Install Flutter (if not already)
-git clone https://github.com/flutter/flutter.git -b stable
-export PATH="$PATH:`pwd`/flutter/bin"
-flutter doctor
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk   # путь к вашему JDK 17
+flutter pub get
+flutter run --flavor dev        # Android
+flutter analyze --no-pub
+flutter test --no-pub
 ```
 
-> Follow [official Flutter installation guide](https://docs.flutter.dev/get-started/install) if needed.
+Флейворы `dev` и `prod` заданы в `android/app/build.gradle.kts`: разные `applicationId` и имена приложения. Для iOS отдельных флейворов нет — используется стандартный scheme `Runner`.
 
----
+## Сборка
 
-### Android Build
+Android:
 
 ```bash
-git clone https://github.com/sewaustav/dot_music.git dot_music
-cd dot_music
-flutter pub get
 flutter build apk --release --flavor prod
+# build/app/outputs/flutter-apk/app-prod-release.apk
 ```
 
-> APK will be at: `build/app/outputs/flutter-apk/app-prod-release.apk`
+Пример быстрой проверки dev-сборки: `flutter build apk --debug --flavor dev`. Gradle и Kotlin работают с JDK 17 (параметры JVM заданы в `android/gradle.properties`).
 
----
+Для release-подписи нужен `android/key.properties` с полями `storeFile`, `storePassword`, `keyAlias`, `keyPassword` и сам keystore. Оба файла не хранятся в git. Без `key.properties` релиз подписывается debug-ключом — только для локальной проверки, не для публикации.
 
-### iOS Build (macOS only)
+iOS (только macOS):
 
 ```bash
-git clone https://github.com/sewaustav/dot_music.git dot_music
-cd dot_music
-flutter pub get
 cd ios
 pod install
 cd ..
-flutter build ios --release --flavor prod
+flutter build ipa --release
 ```
 
-> Then open `ios/Runner.xcworkspace` in Xcode → Select device → **Product → Archive**
+`ios/Podfile` есть в репозитории. Для публикации откройте `ios/Runner.xcworkspace` в Xcode и выполните Archive.
 
----
+Настройки splash-экрана и иконок лежат в `pubspec.yaml`; генераторы вынесены в `dev_dependencies`:
 
-## 🛠 Tech Stack
-
-| Component               | Package                     |
-|-------------------------|-----------------------------|
-| Audio Playback          | `just_audio` + `just_audio_background` |
-| Local Database          | `sqflite`                   |
-| File System             | `path_provider` + `path`    |
-| Permissions             | `permission_handler`        |
-| Routing                 | `go_router`                 |
-| State Management        | `provider`                  |
-| Logging                 | `logger`                    |
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-
-Made with ❤️ and loud music
-
-</div>
+```bash
+dart run flutter_native_splash:create
+dart run flutter_launcher_icons:main
 ```
 
----
+## Стек
 
-**P.S.** No extra setup needed on other devices — just `flutter pub get` and build!  
-Drop a ⭐ if you like it — helps a ton!  
-```
+| Компонент | Пакет / решение |
+|---|---|
+| Воспроизведение | `just_audio` + `audio_service` |
+| Локальная БД | `sqflite` |
+| Файлы и пути | `path_provider` + `path` |
+| Разрешения | `permission_handler` |
+| Навигация | `go_router` |
+| Логирование | `logger` |
+| Локальные настройки | `shared_preferences` |
+| Состояние UI | `setState` + синглтоны сервисов (`provider` не используется) |
+
+Текущее состояние и известные проблемы описаны в [ARCHITECTURE.md](ARCHITECTURE.md) и [TODO.md](TODO.md).
+
+## Лицензия
+
+MIT — см. [LICENSE](LICENSE).

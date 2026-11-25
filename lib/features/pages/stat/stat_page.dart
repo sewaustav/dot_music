@@ -1,3 +1,6 @@
+import 'package:dot_music/l10n/l10n.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dot_music/design/colors.dart';
@@ -19,10 +22,8 @@ class _StatPageState extends State<StatPage> {
       backgroundColor: background,
       appBar: AppBar(
         title: Text(
-          'Statistics',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: textColor),
+          context.l10n.statistics,
+          style: TextStyle(fontWeight: FontWeight.bold, color: textColor),
         ),
         backgroundColor: primary,
         centerTitle: true,
@@ -33,25 +34,27 @@ class _StatPageState extends State<StatPage> {
         child: Column(
           children: [
             _StatButton(
-              label: '🏆 Global Top Tracks',
+              label: context.l10n.globalTopTracks,
               onTap: () => context.push('/statistic/top'),
             ),
             const SizedBox(height: 12),
             _StatButton(
-              label: '📅 Current Month Stats',
+              label: context.l10n.monthStats,
               onTap: () {
                 final now = DateTime.now();
                 setState(() => selectedMonth = now.month);
-                context.push('/statistic/month', extra: selectedMonth);
+                unawaited(
+                  context.push('/statistic/month', extra: selectedMonth),
+                );
               },
             ),
             const SizedBox(height: 12),
             _StatButton(
-              label: '🗓 Current Year Stats',
+              label: context.l10n.yearStats,
               onTap: () {
                 final now = DateTime.now();
                 setState(() => selectedYear = now.year);
-                context.push('/statistic/year', extra: selectedYear);
+                unawaited(context.push('/statistic/year', extra: selectedYear));
               },
             ),
           ],
@@ -62,10 +65,7 @@ class _StatPageState extends State<StatPage> {
 }
 
 class _StatButton extends StatelessWidget {
-  const _StatButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _StatButton({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
@@ -85,9 +85,9 @@ class _StatButton extends StatelessWidget {
         label: Text(
           label,
           style: TextStyle(
-            fontSize: 16, 
+            fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: textColor
+            color: textColor,
           ),
         ),
         onPressed: onTap,

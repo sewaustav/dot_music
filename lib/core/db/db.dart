@@ -9,15 +9,15 @@ import 'package:dot_music/core/config.dart';
 
 /// Миграции вынесены из [DatabaseHelper], чтобы их можно было проверить
 /// на in-memory БД в тестах.
-Future<void> migrateDatabase(Database db, int oldVersion, int newVersion) async {
+Future<void> migrateDatabase(
+  Database db,
+  int oldVersion,
+  int newVersion,
+) async {
   // Миграции идемпотентны: база версии 1 могла быть создана как до появления
   // stat/fav/block таблиц, так и уже с колонкой year.
   if (oldVersion < 2) {
-    for (final table in [
-      Schema.createStatTable,
-      Schema.createFavTable,
-      Schema.createBlockTable,
-    ]) {
+    for (final table in Schema.createTables) {
       await db.execute(_createIfNotExists(table));
     }
   }
@@ -28,10 +28,60 @@ Future<void> migrateDatabase(Database db, int oldVersion, int newVersion) async 
       );
     }
   }
+  if (oldVersion < 4) {
+    await _addIntegrityConstraints(db);
+  }
 }
 
-String _createIfNotExists(String createStatement) =>
-    createStatement.replaceFirst('CREATE TABLE ', 'CREATE TABLE IF NOT EXISTS ');
+/// SQLite не умеет добавлять ограничения через ALTER TABLE, поэтому чистим
+/// возможные дубли и создаём уникальные индексы. Идемпотентно.
+Future<void> _addIntegrityConstraints(Database db) async {
+  await db.execute(
+    'UPDATE tracks SET playback_count = 0 WHERE playback_count IS NULL',
+  );
+
+  // Оставляем по одной записи на каждый business key.
+  await db.execute(
+    'DELETE FROM favorite_songs WHERE id NOT IN '
+    '(SELECT MIN(id) FROM favorite_songs GROUP BY track_id)',
+  );
+  await db.execute(
+    'DELETE FROM black_list WHERE id NOT IN '
+    '(SELECT MIN(id) FROM black_list GROUP BY track_id)',
+  );
+  await db.execute(
+    'DELETE FROM listening_stat WHERE id NOT IN '
+    '(SELECT MIN(id) FROM listening_stat GROUP BY track_id, month, year)',
+  );
+
+  // Плейлисты с одинаковыми именами объединяем: сначала переносим треки,
+  // потом удаляем дубликаты.
+  await db.execute('''
+    INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, added_at)
+    SELECT p.id, pt.track_id, pt.added_at
+    FROM playlists p
+    JOIN playlists keep ON keep.name = p.name AND keep.id < p.id
+    JOIN playlist_tracks pt ON pt.playlist_id = p.id
+  ''');
+  await db.execute(
+    'DELETE FROM playlists WHERE id NOT IN '
+    '(SELECT MIN(id) FROM playlists GROUP BY name)',
+  );
+
+  for (final index in [
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_tracks_path ON tracks(path)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_playlists_name ON playlists(name)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_fav_track ON favorite_songs(track_id)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_block_track ON black_list(track_id)',
+    'CREATE UNIQUE INDEX IF NOT EXISTS idx_stat_track_month_year '
+        'ON listening_stat(track_id, month, year)',
+  ]) {
+    await db.execute(index);
+  }
+}
+
+String _createIfNotExists(String createStatement) => createStatement
+    .replaceFirst('CREATE TABLE ', 'CREATE TABLE IF NOT EXISTS ');
 
 Future<bool> _hasColumn(Database db, String table, String column) async {
   final columns = await db.rawQuery('PRAGMA table_info($table)');
@@ -43,8 +93,8 @@ class DatabaseHelper {
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
-  // ВАЖНО: при изменении схемы увеличивайте версию и добавляйте миграцию в _onUpgrade.
-  static const int databaseVersion = 3;
+  // ВАЖНО: при изменении схемы увеличивайте версию и добавляйте миграцию в migrateDatabase.
+  static const int databaseVersion = 4;
 
   static Database? _db;
 
@@ -69,7 +119,6 @@ class DatabaseHelper {
         await db.execute('PRAGMA foreign_keys = ON');
       },
     );
-
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) =>
@@ -80,11 +129,10 @@ class DatabaseHelper {
     final List<Map<String, dynamic>> tables = await database.rawQuery(
       "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
     );
-    
+
     logger.i("Все таблицы в базе: ${tables.map((t) => t['name']).toList()}");
     return tables.map((table) => table['name'] as String).toList();
   }
-
 
   Future<void> resetDatabase() async {
     final database = await db;
@@ -94,12 +142,11 @@ class DatabaseHelper {
     );
 
     await database.execute('PRAGMA foreign_keys = OFF');
-
     for (final table in tables) {
-      final tableName = table['name'];
-      await database.execute('DROP TABLE IF EXISTS $tableName');
+      await database.execute('DROP TABLE IF EXISTS ${table['name']}');
     }
 
+    await _onCreate(database, databaseVersion);
     await database.execute('PRAGMA foreign_keys = ON');
 
     logger.i("Database has been reset and tables recreated.");
@@ -112,6 +159,7 @@ class DatabaseHelper {
   }
 
   Future<void> deleteDatabaseFile() async {
+    await close();
     final dir = await getApplicationDocumentsDirectory();
     final path = join(dir.path, 'my_database.db');
     if (await File(path).exists()) {
@@ -126,5 +174,4 @@ class DatabaseHelper {
       _db = null;
     }
   }
-
 }

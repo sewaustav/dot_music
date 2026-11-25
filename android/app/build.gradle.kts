@@ -18,7 +18,7 @@ val keystoreProperties = Properties().apply {
 val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
 
 android {
-    namespace = "com.example.dot_music"
+    namespace = "com.dotmusic.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -52,12 +52,12 @@ android {
     productFlavors {
         create("dev") {
             dimension = "app"
-            applicationId = "com.example.dot_music_dev" // ID для дев-версии
+            applicationId = "com.dotmusic.app.dev" // ID для дев-версии
             resValue("string", "app_name", "Dot Music (Dev)") // Название для дев-версии
         }
         create("prod") {
             dimension = "app"
-            applicationId = "com.example.dot_music" // ID для релизной версии
+            applicationId = "com.dotmusic.app" // ID для релизной версии
             resValue("string", "app_name", "Dot Music") // Название для релизной версии
         }
     }

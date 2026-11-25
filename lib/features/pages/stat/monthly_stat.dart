@@ -1,3 +1,4 @@
+import 'package:dot_music/l10n/l10n.dart';
 import 'package:dot_music/core/db/stat_service.dart';
 import 'package:dot_music/features/pages/stat/top_stat.dart';
 import 'package:flutter/material.dart';
@@ -28,10 +29,9 @@ class _MonthlyStatPageState extends State<MonthlyStatPage> {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        title: Text('📅 Top for ${widget.month}.${DateTime.now().year}',
-          style: TextStyle(
-            color: textColor
-          ),
+        title: Text(
+          context.l10n.topForPeriod('${widget.month}.${DateTime.now().year}'),
+          style: TextStyle(color: textColor),
         ),
         backgroundColor: primary,
         centerTitle: true,
@@ -43,18 +43,19 @@ class _MonthlyStatPageState extends State<MonthlyStatPage> {
             return Center(child: CircularProgressIndicator(color: accent));
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text(
+                context.l10n.errorWithMessage(snapshot.error.toString()),
+              ),
+            );
           }
 
           final tracks = snapshot.data ?? [];
           if (tracks.isEmpty) {
-            return const Center(child: Text('No data for this month'));
+            return Center(child: Text(context.l10n.noData));
           }
 
-          return StatList(
-            tracks: tracks,
-            countKey: 'playback_count',
-          );
+          return StatList(tracks: tracks, countKey: 'playback_count');
         },
       ),
     );

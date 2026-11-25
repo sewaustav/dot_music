@@ -1,8 +1,12 @@
+import 'package:dot_music/l10n/l10n.dart';
+import 'dart:async';
+
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/core/db/fav_service.dart';
 import 'package:dot_music/design/colors.dart';
-import 'package:dot_music/features/pages/player/mini_player.dart';
+import 'package:dot_music/features/pages/player/mini_player_scaffold.dart';
+import 'package:dot_music/features/pages/song_list/track_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,26 +18,42 @@ class FavoriteSongsPage extends StatefulWidget {
 }
 
 class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
+  final FavoriteService _favoriteService = FavoriteService();
   List<Map<String, dynamic>> _songs = [];
 
-  @override 
-  void initState() { 
+  @override
+  void initState() {
     super.initState();
-    _loadSongs(); 
-  } 
-  
-  Future<void> _loadSongs() async { 
+    _favoriteService.revision.addListener(_onFavoritesChanged);
+    unawaited(_loadSongs());
+  }
+
+  @override
+  void dispose() {
+    _favoriteService.revision.removeListener(_onFavoritesChanged);
+    super.dispose();
+  }
+
+  void _onFavoritesChanged() {
+    if (!mounted) return;
+    unawaited(_loadSongs());
+  }
+
+  Future<void> _loadSongs() async {
     try {
-      List<int> songIDs = await FavoriteService().getAllSongs(); 
-      List<Map<String, dynamic>> songs = [];
-      for (int songId in songIDs) { 
+      final songIDs = await _favoriteService.getAllSongs();
+      final songs = <Map<String, dynamic>>[];
+      for (final songId in songIDs) {
+        if (!mounted) return;
         final songInfo = await DbHelper().getTrackInfoById(songId);
-        songs.add(songInfo); 
+        // Трек мог быть удалён/попасть в чёрный список — такую запись пропускаем.
+        if (songInfo == null) continue;
+        songs.add(songInfo);
       }
+      if (!mounted) return;
       setState(() {
         _songs = songs;
       });
-      logger.i(_songs);
     } catch (e) {
       logger.e("Error loading songs: $e");
     }
@@ -41,23 +61,25 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
+    return MiniPlayerScaffold(
       appBar: AppBar(
         backgroundColor: primary,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
+          tooltip: context.l10n.back,
           onPressed: () {
             context.go("/");
           },
         ),
-        title: const Text(
-          'Favorite Songs',
-          style: TextStyle(
+        title: Text(
+          context.l10n.favorites,
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         centerTitle: true,
       ),
@@ -66,12 +88,17 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.favorite_border,
-                      color: Colors.white30, size: 72),
+                  Icon(
+                    Icons.favorite_border,
+                    color: Colors.white30,
+                    size: 72,
+                    semanticLabel: context.l10n.noFavoriteTracks,
+                  ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'No favorite tracks yet',
-                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                  Text(
+                    context.l10n.noFavoriteTracks,
+                    style: const TextStyle(color: Colors.white54, fontSize: 16),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -81,122 +108,37 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
               itemCount: _songs.length,
               itemBuilder: (context, index) {
                 final song = _songs[index];
-                return _FavoriteSongCard(
-                  title: song['title'] ?? 'Untitled',
-                  artist: song['artist'] ?? 'Unknown Artist',
+                return TrackTile(
+                  title: song['title']?.toString() ?? context.l10n.noName,
+                  artist:
+                      song['artist']?.toString() ?? context.l10n.unknownArtist,
+                  coverIcon: Icons.favorite,
+                  coverColors: [
+                    Colors.redAccent.withValues(alpha: 0.9),
+                    secondary.withValues(alpha: 0.9),
+                  ],
                   onPlay: () {
-                    context.push("/player", extra: {
-                    "songData": song["path"],
-                    "index": index,
-                    "playlist": -1,
-                    "fromMiniPlayer": false
-                  });
+                    unawaited(
+                      context.push(
+                        "/player",
+                        extra: {
+                          "songData": song["path"],
+                          "index": index,
+                          "playlist": -1,
+                          "fromMiniPlayer": false,
+                        },
+                      ),
+                    );
                   },
-                  onRemove: () async {
-                    await FavoriteService().deleteFromFav(song['track_id']);
-                    await _loadSongs();
-                    setState(() {});
+                  onDelete: () async {
+                    // deleteFromFav уведомляет revision — список перезагрузит слушатель.
+                    await _favoriteService.deleteFromFav(song['track_id']);
                   },
+                  deleteIcon: Icons.favorite,
+                  deleteTooltip: context.l10n.removeFromFavorites,
                 );
               },
             ),
-      bottomNavigationBar: const MiniPlayer(),
-    );
-  }
-}
-
-// ----------------------------------------------------
-// UI card
-// ----------------------------------------------------
-class _FavoriteSongCard extends StatelessWidget {
-  const _FavoriteSongCard({
-    required this.title,
-    required this.artist,
-    required this.onPlay,
-    required this.onRemove,
-  });
-
-  final String title;
-  final String artist;
-  final VoidCallback onPlay;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.redAccent.withOpacity(0.9),
-                  secondary.withOpacity(0.9),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child:
-                const Icon(Icons.favorite, color: Colors.white, size: 26),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  artist,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.play_arrow, color: Colors.green),
-            tooltip: 'Play',
-            onPressed: onPlay,
-          ),
-          IconButton(
-            icon:
-                const Icon(Icons.favorite, color: Colors.redAccent),
-            tooltip: 'Remove from favorites',
-            onPressed: onRemove,
-          ),
-        ],
-      ),
     );
   }
 }

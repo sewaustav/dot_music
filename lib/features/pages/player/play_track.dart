@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/player/service.dart';
-import 'package:dot_music/features/pages/player/ui.dart';
 import 'package:dot_music/features/pages/player/ui_widgets.dart';
+import 'package:dot_music/l10n/l10n.dart';
 
 import 'package:flutter/material.dart';
 import 'package:dot_music/design/colors.dart';
@@ -10,17 +12,19 @@ import 'package:go_router/go_router.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({
-    super.key, 
-    required this.path, 
-    required this.playlist, 
+    super.key,
+    required this.path,
+    required this.playlist,
     required this.index,
     this.fromMiniPlayer = false,
+    this.returnRoute,
   });
 
   final String path;
   final int playlist;
   final int index;
   final bool fromMiniPlayer;
+  final String? returnRoute;
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -29,183 +33,125 @@ class PlayerPage extends StatefulWidget {
 class _PlayerPageState extends State<PlayerPage> {
   final PlayerStateListener _playerListener = PlayerStateListener();
   late PlayerLogic _logic;
-  bool isPlaying = true;
-  bool isLoadingPlaybackCount = true;
 
   @override
   void initState() {
     super.initState();
-    logger.i("fromMiniPlayer: ${widget.fromMiniPlayer}");
-    
+
     if (widget.fromMiniPlayer && _playerListener.hasPlayer) {
-      logger.i("Переиспользуем существующий плеер");
       _logic = _playerListener.playerLogic!;
-      _updateStateFromLogic();
-      
-      // КРИТИЧНО: Подписываемся на обновления существующего логики
-      _logic.addListener(_onLogicUpdate);
     } else {
-      logger.i("Создаем новый плеер");
       _logic = PlayerLogic(
-        refreshUI: _refreshUI,
         initialIndex: widget.index,
         playlist: widget.playlist,
-        refreshBtn: refreshBtn,
-        onPlaybackCountLoaded: _onPlaybackCountLoaded,
+        initialPath: widget.path,
+        l10n: context.l10n,
       );
-
-      PlayerStateListener().registerPlayer(_logic);
-
-      // Подписываемся на обновления нового логики
-      _logic.addListener(_onLogicUpdate);
-      _initializePlayer();
+      _playerListener.registerPlayer(_logic);
+      unawaited(_initializePlayer());
     }
+    _logic.addListener(_onLogicUpdate);
   }
 
   Future<void> _initializePlayer() async {
+    final l10n = context.l10n;
     try {
       await _logic.init();
     } catch (e, st) {
-      logger.e('Failed to initialize player', error: e, stackTrace: st);
-      _logic.setError('Не удалось запустить плеер: $e');
+      logger.e('Не удалось запустить плеер', error: e, stackTrace: st);
+      _logic.setError(l10n.playerStartError(e.toString()));
     }
-  }
-
-  void _updateStateFromLogic() {
-    if (!mounted) return;
-    
-    setState(() {
-      isPlaying = _logic.isPlaying;
-      isLoadingPlaybackCount = false;
-    });
   }
 
   void _onLogicUpdate() {
-    if (!mounted) return;
-    
-    setState(() {
-      isPlaying = _logic.isPlaying;
-    });
+    if (mounted) setState(() {});
   }
 
-  void _refreshUI() {
-    if (mounted) {
-      setState(() {});
+  void _goBack() {
+    if (context.canPop()) {
+      context.pop();
+      return;
     }
-  }
-
-  void refreshBtn(bool cond) {
-    if (!mounted) return;
-    
-    setState(() {
-      isPlaying = cond;
-    });
-  }
-
-  void _onPlaybackCountLoaded(bool loading) {
-    if (!mounted) return;
-    
-    setState(() {
-      isLoadingPlaybackCount = loading;
-    });
+    final fallback = widget.playlist == 0
+        ? '/list'
+        : widget.playlist == -1
+        ? '/fav'
+        : '/playlists';
+    context.go(widget.returnRoute ?? fallback);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: background,
-      
       appBar: AppBar(
         backgroundColor: primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (widget.playlist == 0) {
-              context.go('/list');
-            } else if (widget.playlist == -1) {
-              context.go('/fav');
-            } else {
-              context.go('/playlists', extra: widget.playlist);
-            }
-          },
+          tooltip: context.l10n.back,
+          onPressed: _goBack,
         ),
-        title: Text(_logic.currentTitle, style: 
-          TextStyle(
-            color: Colors.white
-          ),
+        title: Text(
+          _logic.currentTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white),
         ),
-        actions: [
-          IconButton(
-            onPressed: _openPlayerSettings,
-            icon: const Icon(Icons.settings),
-          )
-        ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 8),
-                    PlayerHeader(
-                      title: _logic.currentTitle,
-                      artist: _logic.currentArtist,
-                      playbackCount: _logic.playbackCount,
-                      isLoading: isLoadingPlaybackCount,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    if (_logic.totalDuration.inMilliseconds > 0) ...[
-                      PlayerProgress(
-                        current: _logic.currentPosition,
-                        total: _logic.totalDuration,
-                        onSeek: _logic.seek,
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-
-                    PlayerControls(
-                      isPlaying: isPlaying,
-                      repeatMode: _logic.repeatMode,
-                      onPlayPause: _logic.togglePlayPause,
-                      onNext: _logic.playNextSong,
-                      onPrev: _logic.playPreviousSong,
-                      onShuffle: _logic.playRandomSong,
-                      onChangeRepeatMode: _logic.changeRepeatMode,
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    PlayerActionsRow(
-                      onOpenPlaylist: _openPlaylistView,
-                      onDelete: _logic.removeTrack,
-                      isFavorite: _logic.isFavorite,
-                      toggleFavorite: _logic.toggleFavorite,
-                    ),
-                  ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                PlayerHeader(
+                  title: _logic.currentTitle,
+                  artist: _logic.currentArtist,
+                  playbackCount: _logic.playbackCount,
                 ),
-              ),
-
-              if (_logic.error != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red[100], 
-                    borderRadius: BorderRadius.circular(8)
+                const SizedBox(height: 24),
+                if (_logic.totalDuration.inMilliseconds > 0) ...[
+                  PlayerProgress(
+                    current: _logic.currentPosition,
+                    total: _logic.totalDuration,
+                    onSeek: _logic.seek,
                   ),
-                  child: Text(
-                    _logic.error!, 
-                    style: const TextStyle(color: Colors.red)
-                  ),
+                  const SizedBox(height: 12),
+                ],
+                PlayerControls(
+                  isPlaying: _logic.isPlaying,
+                  repeatMode: _logic.repeatMode,
+                  onPlayPause: _logic.togglePlayPause,
+                  onNext: _logic.playNextSong,
+                  onPrev: _logic.playPreviousSong,
+                  onShuffle: _logic.playRandomSong,
+                  onChangeRepeatMode: _logic.changeRepeatMode,
                 ),
-                const SizedBox(height: 12),
-              ]
-            ],
+                const SizedBox(height: 40),
+                PlayerActionsRow(
+                  onOpenPlaylist: _openPlaylistView,
+                  onDelete: _logic.removeTrack,
+                  isFavorite: _logic.isFavorite,
+                  toggleFavorite: _logic.toggleFavorite,
+                ),
+                if (_logic.error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _logic.error!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
@@ -219,16 +165,17 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   void _openPlaylistView() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => ListOfSongFromPlaylistControl(
-        songs: _logic.songs,
-        currentIndex: _logic.currentSongIndex,
-        playTrackByList: _logic.playSongByIndex,
+    unawaited(
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (context) => ListOfSongFromPlaylistControl(
+          songs: _logic.songs,
+          currentIndex: _logic.currentSongIndex,
+          playTrackByList: _logic.playSongByIndex,
+        ),
       ),
     );
   }
-  void _openPlayerSettings() {}
 }

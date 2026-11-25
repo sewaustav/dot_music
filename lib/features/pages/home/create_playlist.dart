@@ -1,3 +1,4 @@
+import 'package:dot_music/l10n/l10n.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
 
@@ -9,6 +10,7 @@ class PlaylistFormOverlay extends StatefulWidget {
   final VoidCallback onCancel;
 
   const PlaylistFormOverlay({
+    super.key,
     required this.formKey,
     required this.nameController,
     required this.onCreatePlaylist,
@@ -16,10 +18,10 @@ class PlaylistFormOverlay extends StatefulWidget {
   });
 
   @override
-  State<PlaylistFormOverlay> createState() => __PlaylistFormOverlayState();
+  State<PlaylistFormOverlay> createState() => _PlaylistFormOverlayState();
 }
 
-class __PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
+class _PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
   final FocusNode _focusNode = FocusNode();
 
   @override
@@ -43,7 +45,7 @@ class __PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
         _focusNode.unfocus();
       },
       child: Container(
-        color: Colors.black.withOpacity(0.7),
+        color: Colors.black.withValues(alpha: 0.7),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -63,7 +65,9 @@ class __PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            "Create Playlist",
+                            context.l10n.createPlaylistTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: textColor,
                               fontSize: 24,
@@ -76,19 +80,16 @@ class __PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
                             focusNode: _focusNode,
                             style: TextStyle(color: textColor),
                             decoration: InputDecoration(
-                              labelText: 'Playlist name',
+                              labelText: context.l10n.playlistNameLabel,
                               labelStyle: TextStyle(
-                                color: textColor.withOpacity(0.7),
+                                color: textColor.withValues(alpha: 0.7),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderSide: BorderSide(color: accent),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderSide: BorderSide(
-                                  color: accent,
-                                  width: 2,
-                                ),
+                                borderSide: BorderSide(color: accent, width: 2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               errorBorder: OutlineInputBorder(
@@ -107,7 +108,7 @@ class __PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
                             ),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Enter playlist name';
+                                return context.l10n.enterPlaylistName;
                               }
                               return null;
                             },
@@ -129,8 +130,8 @@ class __PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
                                     elevation: 4,
                                   ),
                                   onPressed: widget.onCreatePlaylist,
-                                  child: const Text(
-                                    "Create",
+                                  child: Text(
+                                    context.l10n.create,
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -155,8 +156,8 @@ class __PlaylistFormOverlayState extends State<PlaylistFormOverlay> {
                                     _focusNode.unfocus();
                                     widget.onCancel();
                                   },
-                                  child: const Text(
-                                    "Cancel",
+                                  child: Text(
+                                    context.l10n.cancel,
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,

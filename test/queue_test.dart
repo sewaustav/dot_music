@@ -1,8 +1,9 @@
 import 'package:dot_music/features/queue/queue.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-List<Map<String, dynamic>> songsWithIds(List<int> ids) =>
-    [for (final id in ids) {'track_id': id, 'path': '/music/$id.mp3'}];
+List<Map<String, dynamic>> songsWithIds(List<int> ids) => [
+  for (final id in ids) {'track_id': id, 'path': '/music/$id.mp3'},
+];
 
 List<int> idsOf(List<Map<String, dynamic>> songs) =>
     songs.map((song) => song['track_id'] as int).toList();

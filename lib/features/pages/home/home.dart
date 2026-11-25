@@ -1,12 +1,13 @@
+import 'package:dot_music/l10n/l10n.dart';
+import 'dart:async';
+
 import 'package:dot_music/core/db/crud.dart';
-import 'package:dot_music/core/db/db.dart';
 import 'package:dot_music/features/pages/home/create_playlist.dart';
 import 'package:dot_music/features/pages/home/ui.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
 import 'package:dot_music/features/track_service/load_tracks.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,7 +17,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final dh = DatabaseHelper();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
 
@@ -41,13 +41,12 @@ class _HomePageState extends State<HomePage> {
       setState(() {});
     }
   }
-  
-  
 
   Future<void> _createPlaylist() async {
     if (_formKey.currentState!.validate()) {
-      final ps = PlaylistService();
-      await ps.createPlaylist(_nameController.text);
+      final playlistService = PlaylistService();
+      await playlistService.createPlaylist(_nameController.text);
+      if (!mounted) return;
       setState(() {
         _showForm = false;
         _nameController.clear();
@@ -72,12 +71,11 @@ class _HomePageState extends State<HomePage> {
               onGoToTracks: () => context.push("/list"),
               onGoToPlaylists: () => context.push("/listpl"),
               onGoToStatistic: () => context.push("/statistic"),
-              onDebug: () async => await dh.getAllTables(),
               onScanTracks: () {
-                  if (!TrackLoadingState.isLoading) {
-                    initTracksInBackground(); 
-                  }
-                },
+                if (!TrackLoadingState.isLoading) {
+                  unawaited(initTracksInBackground());
+                }
+              },
             ),
           ),
 
@@ -95,12 +93,11 @@ class _HomePageState extends State<HomePage> {
             ),
 
           // Блокировка UI при загрузке или ошибке
-          if (TrackLoadingState.isLoading || TrackLoadingState.errorText != null)
+          if (TrackLoadingState.isLoading ||
+              TrackLoadingState.errorText != null)
             GestureDetector(
               onTap: () {},
-              child: Container(
-                color: Colors.transparent,
-              ),
+              child: Container(color: Colors.transparent),
             ),
 
           // Индикатор загрузки
@@ -114,23 +111,27 @@ class _HomePageState extends State<HomePage> {
                   color: const Color(0xFF1A1A1A),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
                   ],
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Text(
                             TrackLoadingState.loadingText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -141,8 +142,9 @@ class _HomePageState extends State<HomePage> {
                         if (TrackLoadingState.totalTracks > 0)
                           Text(
                             '${TrackLoadingState.loadedTracks} / ${TrackLoadingState.totalTracks}',
+                            maxLines: 1,
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.7),
+                              color: Colors.white.withValues(alpha: 0.7),
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -154,9 +156,10 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: TrackLoadingState.totalTracks > 0
-                            ? TrackLoadingState.loadedTracks / TrackLoadingState.totalTracks
+                            ? TrackLoadingState.loadedTracks /
+                                  TrackLoadingState.totalTracks
                             : null,
-                        backgroundColor: Colors.white.withOpacity(0.1),
+                        backgroundColor: Colors.white.withValues(alpha: 0.1),
                         valueColor: const AlwaysStoppedAnimation<Color>(
                           Color(0xFF1DB954),
                         ),
@@ -172,17 +175,18 @@ class _HomePageState extends State<HomePage> {
           if (TrackLoadingState.errorText != null)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withOpacity(0.9),
+                color: Colors.black.withValues(alpha: 0.9),
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.error_outline,
                           color: Colors.redAccent,
                           size: 64,
+                          semanticLabel: context.l10n.loadError,
                         ),
                         const SizedBox(height: 24),
                         Text(
@@ -199,7 +203,7 @@ class _HomePageState extends State<HomePage> {
                           onPressed: () {
                             TrackLoadingState.errorText = null;
                             TrackLoadingState.notify();
-                            initTracksInBackground();
+                            unawaited(initTracksInBackground());
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
@@ -208,8 +212,8 @@ class _HomePageState extends State<HomePage> {
                               vertical: 12,
                             ),
                           ),
-                          child: const Text(
-                            'Повторить',
+                          child: Text(
+                            context.l10n.retry,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
