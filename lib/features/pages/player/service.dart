@@ -174,7 +174,7 @@ class PlayerLogic extends ChangeNotifier {
   Duration get totalDuration => state.totalDuration;
   bool get isPlaying => state.isPlaying;
   bool get isFavorite => state.isFavorite;
-  RepeatMode get repeatMode => state.repeatMode;
+  PlayerRepeatMode get repeatMode => state.repeatMode;
 
   Map<String, dynamic>? get currentSong =>
       (songs.isNotEmpty && currentSongIndex < songs.length)

@@ -77,7 +77,7 @@ void main() {
   test('пустая очередь не ломает переключение режима повтора', () {
     expect(logic.songs, isEmpty);
     expect(logic.changeRepeatMode, returnsNormally);
-    expect(logic.repeatMode, RepeatMode.off);
+    expect(logic.repeatMode, PlayerRepeatMode.off);
   });
 
   test('повтор перемешивает очередь и восстанавливает исходный порядок', () {
@@ -86,13 +86,13 @@ void main() {
     logic.state.currentSongIndex = 1;
 
     logic.changeRepeatMode();
-    expect(logic.repeatMode, RepeatMode.one);
+    expect(logic.repeatMode, PlayerRepeatMode.one);
     logic.changeRepeatMode();
-    expect(logic.repeatMode, RepeatMode.random);
+    expect(logic.repeatMode, PlayerRepeatMode.random);
     expect(logic.songs.first['track_id'], 2);
 
     logic.changeRepeatMode();
-    expect(logic.repeatMode, RepeatMode.off);
+    expect(logic.repeatMode, PlayerRepeatMode.off);
     expect(logic.songs.map((song) => song['track_id']).toList(), [2, 3, 1]);
   });
 

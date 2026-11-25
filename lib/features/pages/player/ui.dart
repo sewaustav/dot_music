@@ -4,7 +4,7 @@ import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
-enum RepeatMode { off, one, random }
+enum PlayerRepeatMode { off, one, random }
 
 class PlayerHeader extends StatelessWidget {
   const PlayerHeader({
@@ -179,7 +179,7 @@ class PlayerControls extends StatelessWidget {
   });
 
   final bool isPlaying;
-  final RepeatMode repeatMode;
+  final PlayerRepeatMode repeatMode;
   final VoidCallback onPlayPause;
   final VoidCallback onNext;
   final VoidCallback onPrev;
@@ -187,21 +187,21 @@ class PlayerControls extends StatelessWidget {
   final VoidCallback onChangeRepeatMode;
 
   IconData _repeatIcon() => switch (repeatMode) {
-    RepeatMode.off => Icons.repeat_rounded,
-    RepeatMode.one => Icons.repeat_one_rounded,
-    RepeatMode.random => Icons.casino_rounded,
+    PlayerRepeatMode.off => Icons.repeat_rounded,
+    PlayerRepeatMode.one => Icons.repeat_one_rounded,
+    PlayerRepeatMode.random => Icons.casino_rounded,
   };
 
   Color _repeatColor() => switch (repeatMode) {
-    RepeatMode.off => textMuted,
-    RepeatMode.one => accent,
-    RepeatMode.random => accent,
+    PlayerRepeatMode.off => textMuted,
+    PlayerRepeatMode.one => accent,
+    PlayerRepeatMode.random => accent,
   };
 
   String _repeatTooltip(BuildContext context) => switch (repeatMode) {
-    RepeatMode.off => context.l10n.repeatOff,
-    RepeatMode.one => context.l10n.repeatOne,
-    RepeatMode.random => context.l10n.randomOrder,
+    PlayerRepeatMode.off => context.l10n.repeatOff,
+    PlayerRepeatMode.one => context.l10n.repeatOne,
+    PlayerRepeatMode.random => context.l10n.randomOrder,
   };
 
   @override
@@ -215,7 +215,7 @@ class PlayerControls extends StatelessWidget {
             onPressed: onShuffle,
             icon: const Icon(Icons.shuffle_rounded),
             iconSize: 22,
-            color: repeatMode == RepeatMode.random ? accent : textMuted,
+            color: repeatMode == PlayerRepeatMode.random ? accent : textMuted,
             tooltip: context.l10n.shuffle,
           ),
           const SizedBox(width: 6),

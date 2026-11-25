@@ -160,11 +160,11 @@ class PlayerAudioManager {
 
   Future<void> _handleTrackComplete() async {
     switch (parent.state.repeatMode) {
-      case RepeatMode.off:
+      case PlayerRepeatMode.off:
         await playNextSong();
-      case RepeatMode.one:
+      case PlayerRepeatMode.one:
         await playTrack();
-      case RepeatMode.random:
+      case PlayerRepeatMode.random:
         await playRandomSong();
     }
   }

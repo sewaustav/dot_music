@@ -13,5 +13,5 @@ class PlayerState {
   Duration totalDuration = Duration.zero;
   bool isPlaying = false;
   bool isFavorite = false;
-  RepeatMode repeatMode = RepeatMode.off;
+  PlayerRepeatMode repeatMode = PlayerRepeatMode.off;
 }

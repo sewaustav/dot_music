@@ -9,6 +9,14 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  errors:
+    # The CI runs the latest stable Flutter, where flutter/material.dart and
+    # ReorderableListView.onReorder are deprecated in favour of standalone
+    # material_ui / onReorderItem. The project still supports the SDK pinned
+    # locally, so keep the compatible APIs and silence only the migration hint.
+    deprecated_member_use: ignore
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

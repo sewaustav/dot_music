@@ -42,7 +42,7 @@ void main() {
     Widget controls({required bool playing}) => _withLocalizations(
       PlayerControls(
         isPlaying: playing,
-        repeatMode: RepeatMode.off,
+        repeatMode: PlayerRepeatMode.off,
         onPlayPause: () {},
         onNext: () {},
         onPrev: () {},

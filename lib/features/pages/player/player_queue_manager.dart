@@ -123,15 +123,16 @@ class PlayerQueueManager {
     if (parent.state.songs.isEmpty) return;
 
     final previousMode = parent.state.repeatMode;
-    parent.state.repeatMode = RepeatMode
-        .values[(parent.state.repeatMode.index + 1) % RepeatMode.values.length];
+    parent.state.repeatMode =
+        PlayerRepeatMode.values[(parent.state.repeatMode.index + 1) %
+            PlayerRepeatMode.values.length];
 
-    if (parent.state.repeatMode == RepeatMode.random &&
-        previousMode != RepeatMode.random) {
+    if (parent.state.repeatMode == PlayerRepeatMode.random &&
+        previousMode != PlayerRepeatMode.random) {
       queue.shuffleQueue(parent.state.songs, parent.state.currentSongIndex);
       parent.state.currentSongIndex = 0;
-    } else if (parent.state.repeatMode == RepeatMode.off &&
-        previousMode != RepeatMode.off) {
+    } else if (parent.state.repeatMode == PlayerRepeatMode.off &&
+        previousMode != PlayerRepeatMode.off) {
       final currentTrackId =
           parent.state.songs[parent.state.currentSongIndex]['track_id'];
       final originalIndex = parent.state.originalSongs.indexWhere(
