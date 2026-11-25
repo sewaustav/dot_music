@@ -1,6 +1,8 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/db_helper.dart';
+import 'package:dot_music/features/pages/song_list/sort.dart';
+import 'package:dot_music/features/track_service/device_metadata.dart';
 import 'package:flutter/foundation.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
@@ -17,12 +19,20 @@ class SongListController {
   int _trackCount = 0;
   int get trackCount => _trackCount;
 
-  Future<List<Map<String, dynamic>>> loadSongs() async {
+  Future<List<Map<String, dynamic>>> loadSongs({
+    TrackSortMode mode = TrackSortMode.popularity,
+  }) async {
     _setLoading(true);
     _songs.clear();
 
     try {
       final loadedSongs = await DbHelper().getAllTracks();
+
+      final dates = mode == TrackSortMode.dateAdded
+          ? await DeviceTrackMetadata.datesFor(
+              loadedSongs.map((song) => song['path']?.toString() ?? ''),
+            )
+          : const <String, int>{};
 
       final count = await _playlistView.getCountTrack();
       _trackCount = count;
@@ -30,7 +40,7 @@ class SongListController {
         logger.i('Загружено ${loadedSongs.length} треков из БД');
       }
 
-      return loadedSongs;
+      return sortTracks(loadedSongs, mode, dates);
     } catch (e, st) {
       logger.e('Ошибка загрузки треков', error: e, stackTrace: st);
       rethrow;

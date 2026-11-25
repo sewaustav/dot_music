@@ -256,4 +256,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionDenied => 'Library access denied';
+
+  @override
+  String get sortTracks => 'Sort tracks';
+
+  @override
+  String get sortByPopularity => 'By popularity';
+
+  @override
+  String get sortByAlphabet => 'By alphabet';
+
+  @override
+  String get sortByDateAdded => 'Date added';
 }

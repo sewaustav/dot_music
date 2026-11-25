@@ -559,6 +559,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Нет доступа к медиатеке'**
   String get permissionDenied;
+
+  /// No description provided for @sortTracks.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сортировка треков'**
+  String get sortTracks;
+
+  /// No description provided for @sortByPopularity.
+  ///
+  /// In ru, this message translates to:
+  /// **'По популярности'**
+  String get sortByPopularity;
+
+  /// No description provided for @sortByAlphabet.
+  ///
+  /// In ru, this message translates to:
+  /// **'По алфавиту'**
+  String get sortByAlphabet;
+
+  /// No description provided for @sortByDateAdded.
+  ///
+  /// In ru, this message translates to:
+  /// **'По времени добавления'**
+  String get sortByDateAdded;
 }
 
 class _AppLocalizationsDelegate

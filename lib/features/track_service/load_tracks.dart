@@ -1,6 +1,7 @@
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/features/music_library.dart';
+import 'package:dot_music/features/track_service/device_metadata.dart';
 import 'package:dot_music/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
@@ -33,6 +34,10 @@ Future<void> initTracksInBackground() async {
 
   final generation = ++_scanGeneration;
   bool isCurrent() => generation == _scanGeneration;
+
+  // Медиатека устройства могла измениться — при следующей сортировке
+  // date_added будет собрано заново, а не из старого кэша.
+  DeviceTrackMetadata.invalidate();
 
   try {
     TrackLoadingState.isLoading = true;

@@ -8,6 +8,7 @@ import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player_scaffold.dart';
 import 'package:dot_music/features/pages/song_list/music_service.dart';
 import 'package:dot_music/features/pages/song_list/playlist_dialog.dart';
+import 'package:dot_music/features/pages/song_list/sort.dart';
 import 'package:dot_music/features/pages/song_list/ui.dart';
 import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ class _SongListPageState extends State<SongListPage> {
   final ScrollController _scrollController = ScrollController();
   final songService = SongService();
   List<Map<String, dynamic>> songs = [];
+  TrackSortMode _sortMode = TrackSortMode.popularity;
 
   @override
   void initState() {
@@ -94,7 +96,7 @@ class _SongListPageState extends State<SongListPage> {
 
   Future<void> _loadSongs() async {
     try {
-      final loadedSongs = await _controller.loadSongs();
+      final loadedSongs = await _controller.loadSongs(mode: _sortMode);
       if (!mounted) return;
       setState(() {
         songs = loadedSongs;
@@ -207,6 +209,29 @@ class _SongListPageState extends State<SongListPage> {
                 ),
               ),
             ),
+          PopupMenuButton<TrackSortMode>(
+            icon: const Icon(Icons.sort, color: Colors.white),
+            tooltip: context.l10n.sortTracks,
+            initialValue: _sortMode,
+            onSelected: (mode) async {
+              setState(() => _sortMode = mode);
+              await _loadSongs();
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: TrackSortMode.popularity,
+                child: Text(context.l10n.sortByPopularity),
+              ),
+              PopupMenuItem(
+                value: TrackSortMode.alphabet,
+                child: Text(context.l10n.sortByAlphabet),
+              ),
+              PopupMenuItem(
+                value: TrackSortMode.dateAdded,
+                child: Text(context.l10n.sortByDateAdded),
+              ),
+            ],
+          ),
         ],
       ),
       body: _buildContent(),

@@ -139,5 +139,9 @@
   },
   "noData": "Нет данных",
   "globalTop": "🏆 Глобальный топ",
-  "permissionDenied": "Нет доступа к медиатеке"
+  "permissionDenied": "Нет доступа к медиатеке",
+  "sortTracks": "Сортировка треков",
+  "sortByPopularity": "По популярности",
+  "sortByAlphabet": "По алфавиту",
+  "sortByDateAdded": "По времени добавления"
 }

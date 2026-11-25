@@ -139,5 +139,9 @@
   },
   "noData": "No data available",
   "globalTop": "🏆 Global Top",
-  "permissionDenied": "Library access denied"
+  "permissionDenied": "Library access denied",
+  "sortTracks": "Sort tracks",
+  "sortByPopularity": "By popularity",
+  "sortByAlphabet": "By alphabet",
+  "sortByDateAdded": "Date added"
 }

@@ -256,4 +256,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get permissionDenied => 'Нет доступа к медиатеке';
+
+  @override
+  String get sortTracks => 'Сортировка треков';
+
+  @override
+  String get sortByPopularity => 'По популярности';
+
+  @override
+  String get sortByAlphabet => 'По алфавиту';
+
+  @override
+  String get sortByDateAdded => 'По времени добавления';
 }
