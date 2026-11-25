@@ -147,5 +147,6 @@
   "playNext": "Play next",
   "duplicateInQueue": "Duplicate in queue",
   "removeFromQueue": "Remove from queue",
-  "dragToReorder": "Drag to reorder"
+  "dragToReorder": "Drag to reorder",
+  "trackWillPlayNext": "Track queued next"
 }

@@ -607,6 +607,12 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Перетащить для изменения порядка'**
   String get dragToReorder;
+
+  /// No description provided for @trackWillPlayNext.
+  ///
+  /// In ru, this message translates to:
+  /// **'Трек будет следующим'**
+  String get trackWillPlayNext;
 }
 
 class _AppLocalizationsDelegate

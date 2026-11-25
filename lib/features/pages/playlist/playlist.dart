@@ -5,6 +5,7 @@ import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player_scaffold.dart';
+import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/song_list/track_tile.dart';
 import 'package:dot_music/features/track_service/edit_info.dart';
 import 'package:flutter/material.dart';
@@ -63,6 +64,21 @@ class _PlaylistPageState extends State<PlaylistPage> {
         },
       ),
     );
+  }
+
+  void _playNextSong(Map<String, dynamic> song, int index) {
+    if (!PlayerStateListener().addNextToQueue(song)) {
+      _playSong(song, index);
+      return;
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.trackWillPlayNext),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _removeFromPlaylist(Map<String, dynamic> song) async {
@@ -132,6 +148,7 @@ class _PlaylistPageState extends State<PlaylistPage> {
                   artist:
                       song['artist']?.toString() ?? context.l10n.unknownArtist,
                   onPlay: () => _playSong(song, index),
+                  onPlayNext: () => _playNextSong(song, index),
                   onDelete: () => _removeFromPlaylist(song),
                   deleteTooltip: context.l10n.removeFromPlaylist,
                   onEdit: () => _editTrackTitle(song),

@@ -6,6 +6,7 @@ import 'package:dot_music/core/db/crud.dart';
 import 'package:dot_music/core/db/fav_service.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player_scaffold.dart';
+import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/song_list/music_service.dart';
 import 'package:dot_music/features/pages/song_list/playlist_dialog.dart';
 import 'package:dot_music/features/pages/song_list/sort.dart';
@@ -86,6 +87,7 @@ class _SongListPageState extends State<SongListPage> {
           song: song,
           index: index,
           onPlay: () => _playSong(song, index),
+          onPlayNext: () => _playNextSong(song, index),
           onAddToPlaylist: () => _showPlaylistSelectionDialog(song),
           onDelete: () => _handleDelete(song),
           onRename: (newTitle) => _handleRename(index, newTitle),
@@ -141,6 +143,15 @@ class _SongListPageState extends State<SongListPage> {
         },
       ),
     );
+  }
+
+  void _playNextSong(Map<String, dynamic> song, int index) {
+    if (!PlayerStateListener().addNextToQueue(song)) {
+      _playSong(song, index);
+      return;
+    }
+
+    _showSuccessSnackBar(context.l10n.trackWillPlayNext);
   }
 
   Future<void> _showPlaylistSelectionDialog(Map<String, dynamic> song) async {

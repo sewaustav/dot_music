@@ -12,6 +12,7 @@ class TrackTile extends StatelessWidget {
     required this.title,
     required this.artist,
     required this.onPlay,
+    this.onPlayNext,
     this.onDelete,
     this.onEdit,
     this.trailing,
@@ -27,6 +28,7 @@ class TrackTile extends StatelessWidget {
   final String title;
   final String artist;
   final VoidCallback onPlay;
+  final VoidCallback? onPlayNext;
   final VoidCallback? onDelete;
   final VoidCallback? onEdit;
   final Widget? trailing;
@@ -111,6 +113,12 @@ class TrackTile extends StatelessWidget {
               tooltip: playTooltip ?? context.l10n.play,
               onPressed: onPlay,
             ),
+            if (onPlayNext != null)
+              IconButton(
+                icon: Icon(Icons.queue_play_next, color: accent),
+                tooltip: context.l10n.playNext,
+                onPressed: onPlayNext,
+              ),
             if (onDelete != null)
               IconButton(
                 icon: Icon(deleteIcon, color: deleteColor),

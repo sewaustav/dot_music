@@ -143,7 +143,7 @@ flowchart LR
 ## 6. Управление состоянием
 
 - **`PlayerLogic extends ChangeNotifier`** (`pages/player/service.dart`) — единственный источник правды о плеере. Состояние лежит в `PlayerState` (`player_state.dart`): songs/originalSongs, currentSongIndex, trackId, playbackCount, позиция/длительность, isPlaying, isFavorite, repeatMode, error. `notify()` — единственная обёртка над `notifyListeners()` и не вызывает его после `dispose()`.
-- **Менеджеры** (`player_*_manager.dart`): аудио (потоки позиции/длительности, переключение треков, completion, stop), очередь (initial rotate, repeat/shuffle, порядок по путям, drag-and-drop, дублирование, «слушать следующим», удаление из очереди), избранное (revision + статус текущего трека), треки (загрузка списка, инкремент статистики, мягкое удаление из библиотеки).
+- **Менеджеры** (`player_*_manager.dart`): аудио (потоки позиции/длительности/состояния play/pause, переключение треков, completion, stop), очередь (initial rotate, repeat/shuffle, порядок по путям, drag-and-drop, дублирование, «слушать следующим», удаление из очереди), избранное (revision + статус текущего трека), треки (загрузка списка, инкремент статистики, мягкое удаление из библиотеки).
 - **`PlayerStateListener`** (`player_holder.dart`) — синглтон-владелец активного `PlayerLogic`: мини-плеер и кнопки уведомления читают состояние через него; при регистрации нового плеера старый dispose'ится. Закрытие `PlayerPage` снимает только локальный listener — плеер продолжает играть в мини-плеере и фоне.
 - **`FavoriteService.revision`** (`ValueNotifier<int>`) — шина изменений избранного между экранами и плеером.
 - **`TrackLoadingState`** — статический прогресс сканирования; локализация передаётся в него один раз из `DotMusic.build()`.
@@ -152,6 +152,10 @@ flowchart LR
 Жизненный цикл плеера: `PlayerPage.initState()` либо переиспользует `PlayerLogic` из `PlayerStateListener` (`fromMiniPlayer: true`), либо создаёт новый и вызывает `await _logic.init()` с обработкой ошибки. `init()`: загрузка списка → сортировка по `queuePaths` → выбор индекса (включая `initialPath`) → ротация очереди → `syncQueue()` (media session) → статус избранного → подписки на потоки → `playFromFile()` → инкремент счётчика конкретного трека. Повтор: `off → one → random → off`; `random` перемешивает очередь и выбирает случайный трек. Нижняя панель очереди подписана на `PlayerLogic` через `ListenableBuilder`, поэтому правки сразу видны в списке.
 
 Правки очереди (`moveInQueue`, `duplicateInQueue`, `playNextInQueue`, `removeFromQueue`) не трогают файлы и записи БД: они меняют только `PlayerState.songs`, корректируют `currentSongIndex`, обновляют `originalSongs` (новая основа при выключении shuffle) и вызывают `syncQueue()`. `MyAudioHandler.setQueue()` переписывает медиа-очередь и `SharedPreferences`; дубли получают уникальные `MediaItem.id` вида `path#index`. Удаление текущего трека запускает следующий, а опустевшая очередь останавливает воспроизведение и показывает `trackListEmpty`.
+
+`AudioController.playingStream` — единственный источник для иконки play/pause: `PlayerAudioManager` подписан на `just_audio.playerStateStream`, поэтому и UI, и мини-плеер обновляются и при нажатии на экране, и при управлении из уведомления, и при автоматическом переходе к следующему треку. `PlayerState.isPlaying` начинается с `false`; `togglePlayPause()` сверяется с `audio.isPlaying`, а не с нарисованной иконкой.
+
+`TrackTile` используется всеми списками; кнопка «слушать следующим» вызывает `PlayerStateListener.addNextToQueue()`, который вставляет трек сразу после текущего в активной очереди. Если плеер ещё не создан, кнопка ведёт себя как обычное воспроизведение и открывает `/player`.
 
 `AudioController` (`lib/features/player/audio_controller.dart`) фиксируется в `PlayerLogic` при создании: dispose снимает колбэки именно с того контроллера, на котором они были поставлены, даже если глобальный `audioHandler` к тому моменту заменён.
 
@@ -186,7 +190,7 @@ flowchart LR
 ## 9. Тесты и качество кода
 
 - `flutter analyze --no-pub`: `No issues found!`. В `analysis_options.yaml` включены `unawaited_futures`, `discarded_futures`, `avoid_dynamic_calls`, `use_build_context_synchronously`. `strict-casts` не используется: текущий SDK отклоняет опцию (`unsupported_option_with_legal_values`).
-- `flutter test --no-pub`: **42 теста** — очередь, миграции/статистика БД, разбор аргументов роутера, рассылка `TrackLoadingState`, `PlayerLogic` (очередь/repeat/media session/dispose/внешний индекс), владение плеером в `PlayerStateListener`, `TrackLoaderService`, сортировка, порядок очереди по сортировке, редактирование очереди и UI панели, мягкое удаление, smoke-виджет. Unit-тесты плеера используют `FakeAudioController` вместо нативных плагинов.
+- `flutter test --no-pub`: **48 тестов** — очередь, миграции/статистика БД, разбор аргументов роутера, рассылка `TrackLoadingState`, `PlayerLogic` (очередь/repeat/media session/dispose/внешний индекс, play/pause из потока плеера), владение плеером в `PlayerStateListener`, `TrackLoaderService`, сортировка, порядок очереди по сортировке, редактирование очереди и UI, мягкое удаление, smoke-виджет. Unit-тесты плеера используют `FakeAudioController` вместо нативных плагинов.
 - `dart format --output=none --set-exit-if-changed lib test`: `0 changed`; та же проверка есть в `.github/workflows/ci.yml`.
 - `flutter gen-l10n` генерирует `AppLocalizations` из ARB; RU — шаблон, EN — перевод.
 - Обе Android-сборки проходят с **JDK 17**: `flutter build apk --flavor dev` и `flutter build apk --release --flavor prod` дают `app-dev-release.apk` / `app-prod-release.apk` (~43 МБ). С системной Java 27 Gradle 9 падает на `jlink` ещё до Dart-компиляции. Лимиты JVM заданы в `android/gradle.properties` (`-Xmx2G` для Gradle, `-Xmx1536m` для Kotlin), JDK 17 подключён в CI. iOS-сборка не проверялась (нет macOS/Xcode).
@@ -201,9 +205,9 @@ flutter pub get
 flutter gen-l10n                        # ARB -> lib/l10n/app_localizations*.dart
 flutter analyze --no-pub                # No issues found!
 dart format --output=none --set-exit-if-changed lib test
-flutter test --no-pub                   # 42 теста
+flutter test --no-pub                   # 48 тестов
 flutter run --flavor dev               # Android
 flutter build apk --flavor dev         # app-dev-release.apk
 ```
 
-iOS: `cd ios && pod install`, затем сборка в Xcode (требуется macOS). Ключ подписи и `android/key.properties` находятся в `.gitignore`. Все изменения пока остаются в рабочем дереве: коммит и пуш выполняются только по отдельной просьбе.
+iOS: `cd ios && pod install`, затем сборка в Xcode (требуется macOS). Ключ подписи и `android/key.properties` находятся в `.gitignore`. Коммиты создаются по просьбе; пуш в удалённый репозиторий не выполнялся.

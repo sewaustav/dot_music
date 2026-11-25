@@ -142,4 +142,33 @@ void main() {
     expect(logic.trackId, 3);
     await _flush();
   });
+
+  test('внешний play/pause обновляет состояние кнопки', () async {
+    logic.audio.setupListeners();
+    expect(logic.isPlaying, isFalse);
+    expect(audio.playingListeners, 1);
+
+    audio.emitPlaying(true);
+    await _flush();
+    expect(logic.isPlaying, isTrue);
+
+    audio.emitPlaying(false);
+    await _flush();
+    expect(logic.isPlaying, isFalse);
+  });
+
+  test('переключение сверяется с реальным состоянием плеера', () async {
+    logic.audio.setupListeners();
+    // Иконка могла устареть после управления из уведомления.
+    logic.state.isPlaying = true;
+
+    await logic.togglePlayPause();
+    expect(audio.playCalls, 1);
+    expect(audio.pauseCalls, 0);
+    expect(logic.isPlaying, isTrue);
+
+    await logic.togglePlayPause();
+    expect(audio.pauseCalls, 1);
+    expect(logic.isPlaying, isFalse);
+  });
 }

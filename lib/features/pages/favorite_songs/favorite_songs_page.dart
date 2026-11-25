@@ -6,6 +6,7 @@ import 'package:dot_music/core/db/db_helper.dart';
 import 'package:dot_music/core/db/fav_service.dart';
 import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/mini_player_scaffold.dart';
+import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/song_list/track_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +38,39 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   void _onFavoritesChanged() {
     if (!mounted) return;
     unawaited(_loadSongs());
+  }
+
+  void _playSong(Map<String, dynamic> song, int index) {
+    unawaited(
+      context.push(
+        '/player',
+        extra: {
+          'songData': song['path'],
+          'index': index,
+          'playlist': -1,
+          'fromMiniPlayer': false,
+          'queuePaths': _songs
+              .map((item) => item['path']?.toString() ?? '')
+              .where((path) => path.isNotEmpty)
+              .toList(),
+        },
+      ),
+    );
+  }
+
+  void _playNextSong(Map<String, dynamic> song, int index) {
+    if (!PlayerStateListener().addNextToQueue(song)) {
+      _playSong(song, index);
+      return;
+    }
+    _showSuccessSnackBar(context.l10n.trackWillPlayNext);
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
   }
 
   Future<void> _loadSongs() async {
@@ -117,23 +151,8 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
                     Colors.redAccent.withValues(alpha: 0.9),
                     secondary.withValues(alpha: 0.9),
                   ],
-                  onPlay: () {
-                    unawaited(
-                      context.push(
-                        "/player",
-                        extra: {
-                          "songData": song["path"],
-                          "index": index,
-                          "playlist": -1,
-                          "fromMiniPlayer": false,
-                          "queuePaths": _songs
-                              .map((song) => song['path']?.toString() ?? '')
-                              .where((path) => path.isNotEmpty)
-                              .toList(),
-                        },
-                      ),
-                    );
-                  },
+                  onPlay: () => _playSong(song, index),
+                  onPlayNext: () => _playNextSong(song, index),
                   onDelete: () async {
                     // deleteFromFav уведомляет revision — список перезагрузит слушатель.
                     await _favoriteService.deleteFromFav(song['track_id']);

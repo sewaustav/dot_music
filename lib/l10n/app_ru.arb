@@ -147,5 +147,6 @@
   "playNext": "Слушать следующим",
   "duplicateInQueue": "Дублировать в очереди",
   "removeFromQueue": "Убрать из очереди",
-  "dragToReorder": "Перетащить для изменения порядка"
+  "dragToReorder": "Перетащить для изменения порядка",
+  "trackWillPlayNext": "Трек будет следующим"
 }

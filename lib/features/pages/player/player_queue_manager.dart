@@ -62,6 +62,21 @@ class PlayerQueueManager {
     return true;
   }
 
+  /// Добавляет трек из списка (ещё не в очереди) сразу после текущего.
+  bool addNextToQueue(Map<String, dynamic> song) {
+    if (parent.state.songs.isEmpty) return false;
+
+    var insertAt = parent.state.currentSongIndex + 1;
+    if (insertAt < 0) insertAt = 0;
+    if (insertAt > parent.state.songs.length) {
+      insertAt = parent.state.songs.length;
+    }
+    parent.state.songs.insert(insertAt, Map<String, dynamic>.from(song));
+
+    _commitEdit();
+    return true;
+  }
+
   /// Ставит выбранный трек сразу после текущего, не дублируя его.
   bool playNextQueueItem(int index) {
     final songs = parent.state.songs;

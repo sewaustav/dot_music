@@ -13,13 +13,19 @@ class FakeAudioController implements AudioController {
       onListen: () => durationListeners++,
       onCancel: () => durationListeners--,
     );
+    _playing = StreamController<bool>.broadcast(
+      onListen: () => playingListeners++,
+      onCancel: () => playingListeners--,
+    );
   }
 
   late final StreamController<Duration> _position;
   late final StreamController<Duration?> _duration;
+  late final StreamController<bool> _playing;
 
   int positionListeners = 0;
   int durationListeners = 0;
+  int playingListeners = 0;
   int setQueueCalls = 0;
   int playCalls = 0;
   int pauseCalls = 0;
@@ -37,6 +43,9 @@ class FakeAudioController implements AudioController {
   Stream<Duration?> get durationStream => _duration.stream;
 
   @override
+  Stream<bool> get playingStream => _playing.stream;
+
+  @override
   bool isPlaying = false;
 
   @override
@@ -44,6 +53,12 @@ class FakeAudioController implements AudioController {
 
   @override
   void Function(int)? onQueueIndexChanged;
+
+  /// Симулирует изменение состояния вне UI (например, из уведомления).
+  void emitPlaying(bool playing) {
+    isPlaying = playing;
+    _playing.add(playing);
+  }
 
   @override
   Future<void> setQueue(List<Map<String, dynamic>> songs, int index) async {
@@ -62,24 +77,25 @@ class FakeAudioController implements AudioController {
   }) async {
     lastPath = path;
     playedPaths.add(path);
+    emitPlaying(true);
   }
 
   @override
   Future<void> play() async {
     playCalls++;
-    isPlaying = true;
+    emitPlaying(true);
   }
 
   @override
   Future<void> pause() async {
     pauseCalls++;
-    isPlaying = false;
+    emitPlaying(false);
   }
 
   @override
   Future<void> stop() async {
     stopCalls++;
-    isPlaying = false;
+    emitPlaying(false);
   }
 
   @override
@@ -88,5 +104,6 @@ class FakeAudioController implements AudioController {
   Future<void> close() async {
     await _position.close();
     await _duration.close();
+    await _playing.close();
   }
 }

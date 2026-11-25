@@ -20,6 +20,7 @@ class PlayerAudioManager {
   final AudioController audio;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
+  StreamSubscription<bool>? _playingSubscription;
   bool _isActive = true;
   late final void Function() _completionCallback;
   late final void Function(int) _externalIndexCallback;
@@ -28,6 +29,7 @@ class PlayerAudioManager {
     // setupListeners может вызваться повторно при пересоздании плеера.
     unawaited(_positionSubscription?.cancel());
     unawaited(_durationSubscription?.cancel());
+    unawaited(_playingSubscription?.cancel());
 
     _positionSubscription = audio.positionStream.listen((pos) {
       parent.state.currentPosition = pos;
@@ -37,6 +39,17 @@ class PlayerAudioManager {
       parent.state.totalDuration = dur ?? Duration.zero;
       parent.notify();
     });
+    // Внешние кнопки (уведомление, медиаклавиши) меняют состояние плеера
+    // помимо UI — слушаем его, а не запоминаем последний нажатый вариант.
+    _playingSubscription = audio.playingStream.listen(_syncPlaying);
+    _syncPlaying();
+  }
+
+  void _syncPlaying([bool? playing]) {
+    final value = playing ?? audio.isPlaying;
+    if (parent.state.isPlaying == value) return;
+    parent.state.isPlaying = value;
+    parent.notify();
   }
 
   Future<void> playTrack({bool registerPlayback = true}) async {
@@ -54,7 +67,7 @@ class PlayerAudioManager {
         artist: song['artist']?.toString(),
       );
       parent.state.error = null;
-      parent.state.isPlaying = true;
+      _syncPlaying();
       if (registerPlayback) {
         await parent.trackManager.updateCount(song['track_id'] as int);
       }
@@ -131,19 +144,18 @@ class PlayerAudioManager {
 
   Future<void> stop() async {
     await audio.stop();
-    parent.state.isPlaying = false;
-    parent.notify();
+    _syncPlaying();
   }
 
   Future<void> togglePlayPause() async {
+    // Ориентируемся на реальное состояние контроллера, а не на иконку:
+    // она могла устареть после управления из уведомления.
     if (audio.isPlaying) {
       await audio.pause();
-      parent.state.isPlaying = false;
     } else {
       await audio.play();
-      parent.state.isPlaying = true;
     }
-    parent.notify();
+    _syncPlaying();
   }
 
   Future<void> _handleTrackComplete() async {
@@ -169,5 +181,6 @@ class PlayerAudioManager {
     }
     unawaited(_positionSubscription?.cancel());
     unawaited(_durationSubscription?.cancel());
+    unawaited(_playingSubscription?.cancel());
   }
 }

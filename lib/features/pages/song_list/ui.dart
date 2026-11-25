@@ -8,6 +8,7 @@ class SongCard extends StatelessWidget {
   final Map<String, dynamic> song;
   final int index;
   final VoidCallback onPlay;
+  final VoidCallback onPlayNext;
   final VoidCallback onAddToPlaylist;
   final VoidCallback onDelete;
   final Function(String newTitle) onRename; // Добавляем колбэк
@@ -17,6 +18,7 @@ class SongCard extends StatelessWidget {
     required this.song,
     required this.index,
     required this.onPlay,
+    required this.onPlayNext,
     required this.onAddToPlaylist,
     required this.onDelete,
     required this.onRename, // Обязательный параметр
@@ -28,6 +30,7 @@ class SongCard extends StatelessWidget {
       title: song["title"]?.toString() ?? context.l10n.noName,
       artist: song["artist"]?.toString() ?? context.l10n.unknownArtist,
       onPlay: onPlay,
+      onPlayNext: onPlayNext,
       trailing: PopupMenuButton<String>(
         icon: Icon(Icons.more_vert, color: secondary),
         tooltip: context.l10n.trackActions,

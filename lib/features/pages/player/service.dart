@@ -139,6 +139,9 @@ class PlayerLogic extends ChangeNotifier {
 
   bool playNextInQueue(int index) => queueManager.playNextQueueItem(index);
 
+  bool addNextToQueue(Map<String, dynamic> song) =>
+      queueManager.addNextToQueue(song);
+
   Future<void> removeFromQueue(int index) async {
     final songs = state.songs;
     if (index < 0 || index >= songs.length) return;

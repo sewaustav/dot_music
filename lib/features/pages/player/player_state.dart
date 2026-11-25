@@ -11,7 +11,7 @@ class PlayerState {
   int trackId = 0;
   Duration currentPosition = Duration.zero;
   Duration totalDuration = Duration.zero;
-  bool isPlaying = true;
+  bool isPlaying = false;
   bool isFavorite = false;
   RepeatMode repeatMode = RepeatMode.off;
 }

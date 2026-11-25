@@ -116,6 +116,28 @@ void main() {
     expect(logic.currentSongIndex, 1);
   });
 
+  test('track list action inserts a song after the current one', () {
+    logic.state.currentSongIndex = 1;
+
+    final added = logic.addNextToQueue({
+      'track_id': 9,
+      'path': '/queue/9.mp3',
+      'title': 'Track 9',
+    });
+
+    expect(added, isTrue);
+    expect(idsOf(logic.songs), [1, 2, 9, 3, 4]);
+    expect(logic.currentSongIndex, 1);
+    expect(idsOf(logic.state.originalSongs), [1, 2, 9, 3, 4]);
+  });
+
+  test('track list action is ignored without an active queue', () {
+    logic.state.songs = [];
+
+    expect(logic.addNextToQueue({'track_id': 9}), isFalse);
+    expect(audio.setQueueCalls, 0);
+  });
+
   test('removing an earlier track keeps the current one focused', () async {
     logic.state.currentSongIndex = 2;
 

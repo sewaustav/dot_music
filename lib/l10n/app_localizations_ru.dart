@@ -280,4 +280,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get dragToReorder => 'Перетащить для изменения порядка';
+
+  @override
+  String get trackWillPlayNext => 'Трек будет следующим';
 }

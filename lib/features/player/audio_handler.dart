@@ -56,6 +56,9 @@ class MyAudioHandler extends BaseAudioHandler implements AudioController {
   @override
   Stream<Duration?> get durationStream => _player.durationStream;
   @override
+  Stream<bool> get playingStream =>
+      _player.playerStateStream.map((state) => state.playing).distinct();
+  @override
   bool get isPlaying => _player.playing;
 
   @override

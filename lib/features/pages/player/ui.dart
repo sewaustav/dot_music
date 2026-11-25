@@ -189,43 +189,52 @@ class PlayerControls extends StatelessWidget {
           IconButton(
             onPressed: onShuffle,
             icon: const Icon(Icons.shuffle),
-            iconSize: 26,
+            iconSize: 24,
             color: repeatMode == RepeatMode.random ? accent : Colors.white60,
             tooltip: context.l10n.shuffle,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
             onPressed: onPrev,
             icon: const Icon(Icons.skip_previous),
-            iconSize: 36,
+            iconSize: 34,
             color: Colors.white,
             tooltip: context.l10n.previousTrack,
           ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: onPlayPause,
-            style: ElevatedButton.styleFrom(
-              shape: const CircleBorder(),
-              padding: const EdgeInsets.all(18),
-              backgroundColor: textColor,
-              foregroundColor: background,
-              elevation: 6,
+          const SizedBox(width: 4),
+          Tooltip(
+            message: isPlaying ? context.l10n.pause : context.l10n.play,
+            child: ElevatedButton(
+              onPressed: onPlayPause,
+              style: ElevatedButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(16),
+                backgroundColor: accent,
+                foregroundColor: textColor,
+                elevation: 4,
+              ),
+              child: Icon(
+                isPlaying ? Icons.pause : Icons.play_arrow,
+                size: 28,
+                semanticLabel: isPlaying
+                    ? context.l10n.pause
+                    : context.l10n.play,
+              ),
             ),
-            child: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 30),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
             onPressed: onNext,
             icon: const Icon(Icons.skip_next),
-            iconSize: 36,
+            iconSize: 34,
             color: Colors.white,
             tooltip: context.l10n.nextTrack,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
             onPressed: onChangeRepeatMode,
             icon: Icon(_repeatIcon()),
-            iconSize: 26,
+            iconSize: 24,
             color: _repeatColor(),
             tooltip: _repeatTooltip(context),
           ),
@@ -254,31 +263,28 @@ class PlayerActionsRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Flexible(
-            child: IconButton(
-              onPressed: onOpenPlaylist,
-              icon: const Icon(Icons.playlist_play),
-              tooltip: context.l10n.queue,
-              color: Colors.white70,
-            ),
+          IconButton(
+            onPressed: onOpenPlaylist,
+            icon: const Icon(Icons.playlist_play),
+            tooltip: context.l10n.queue,
+            color: Colors.white70,
           ),
-          Flexible(
-            child: IconButton(
-              onPressed: toggleFavorite,
-              icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
-              tooltip: context.l10n.favorites,
-              color: Colors.white70,
-            ),
+          const SizedBox(width: 24),
+          IconButton(
+            onPressed: toggleFavorite,
+            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+            tooltip: context.l10n.favorites,
+            color: Colors.white70,
           ),
-          Flexible(
-            child: IconButton(
-              onPressed: onDelete,
-              icon: const Icon(Icons.delete_outline),
-              tooltip: context.l10n.delete,
-              color: Colors.white70,
-            ),
+          const SizedBox(width: 24),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline),
+            tooltip: context.l10n.delete,
+            color: Colors.white70,
           ),
         ],
       ),

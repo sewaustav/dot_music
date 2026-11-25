@@ -77,6 +77,11 @@ class PlayerStateListener {
     }
   }
 
+  /// Добавляет трек в активную очередь следующим. `false` означает, что
+  /// плеера ещё нет — список в этом случае открывает трек обычным нажатием.
+  bool addNextToQueue(Map<String, dynamic> song) =>
+      _playerLogic?.addNextToQueue(song) ?? false;
+
   Future<void> togglePlayPause() async {
     if (_playerLogic != null) {
       await _playerLogic!.togglePlayPause();

@@ -7,6 +7,10 @@ import 'dart:async';
 abstract class AudioController {
   Stream<Duration> get positionStream;
   Stream<Duration?> get durationStream;
+
+  /// Единственный источник правды для кнопки play/pause: приходит из
+  /// нативного плеера, поэтому уведомления и UI всегда показывают одно и то же.
+  Stream<bool> get playingStream;
   bool get isPlaying;
 
   void Function()? onTrackComplete;

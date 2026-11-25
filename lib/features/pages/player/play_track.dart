@@ -113,14 +113,14 @@ class _PlayerPageState extends State<PlayerPage> {
                   artist: _logic.currentArtist,
                   playbackCount: _logic.playbackCount,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 if (_logic.totalDuration.inMilliseconds > 0) ...[
                   PlayerProgress(
                     current: _logic.currentPosition,
                     total: _logic.totalDuration,
                     onSeek: _logic.seek,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                 ],
                 PlayerControls(
                   isPlaying: _logic.isPlaying,
@@ -131,7 +131,7 @@ class _PlayerPageState extends State<PlayerPage> {
                   onShuffle: _logic.playRandomSong,
                   onChangeRepeatMode: _logic.changeRepeatMode,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 24),
                 PlayerActionsRow(
                   onOpenPlaylist: _openPlaylistView,
                   onDelete: _logic.removeTrack,
