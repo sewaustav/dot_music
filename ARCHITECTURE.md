@@ -34,7 +34,7 @@
 1. `WidgetsFlutterBinding.ensureInitialized()`.
 2. `await DatabaseHelper().db` — открытие/создание БД версии 4.
 3. `await initAudioService()` — на Android сначала `Permission.notification.request()`, затем `AudioService.init<MyAudioHandler>()`; результат сохраняется в глобальный `late AudioController audioHandler` (`lib/features/player/audio.dart`).
-4. `runApp(const DotMusic())`. `DotMusic.build()` один раз передаёт локализацию в `TrackLoadingState.l10n` (прогресс сканирования показывается вне виджетов), затем `MaterialApp.router` получает `localizationsDelegates`, `supportedLocales`, тему с палитрой `design/colors.dart`, `routerConfig: router` и `title: context.l10n.appTitle`.
+4. `runApp(const DotMusic())`. `MaterialApp.router` получает `localizationsDelegates`, `supportedLocales`, тему с палитрой `design/colors.dart`, `routerConfig: router` и `onGenerateTitle` (заголовок берётся из `context.l10n` уже внутри `Localizations`). В `builder` приложение передаёт локализацию в `TrackLoadingState.l10n` — прогресс сканирования показывается вне виджетов. Обращение к `context.l10n` до `MaterialApp` недопустимо: оно привело бы к `Null check operator used on a null value` и белому экрану.
 5. `unawaited(initTracksInBackground())` — автосканирование после старта UI; кнопка на главной остаётся как «пересканировать».
 
 Bundle id: `com.dotmusic.app` (prod, iOS), `com.dotmusic.app.dev` (dev Android), канал уведомлений `com.dotmusic.app.channel.audio`.
@@ -182,7 +182,7 @@ flowchart LR
 ## 9. Тесты и качество кода
 
 - `flutter analyze --no-pub`: `No issues found!`. В `analysis_options.yaml` включены `unawaited_futures`, `discarded_futures`, `avoid_dynamic_calls`, `use_build_context_synchronously`. `strict-casts` не используется: текущий SDK отклоняет опцию (`unsupported_option_with_legal_values`).
-- `flutter test --no-pub`: **23 теста** — очередь, миграции/статистика БД, разбор аргументов роутера, рассылка `TrackLoadingState`, `PlayerLogic` (очередь/repeat/media session/dispose/внешний индекс), владение плеером в `PlayerStateListener`, `TrackLoaderService`, smoke-виджет. Unit-тесты плеера используют `FakeAudioController` вместо нативных плагинов.
+- `flutter test --no-pub`: **24 теста** — очередь, миграции/статистика БД, разбор аргументов роутера, рассылка `TrackLoadingState`, `PlayerLogic` (очередь/repeat/media session/dispose/внешний индекс), владение плеером в `PlayerStateListener`, `TrackLoaderService`, smoke-виджет. Unit-тесты плеера используют `FakeAudioController` вместо нативных плагинов.
 - `dart format --output=none --set-exit-if-changed lib test`: `0 changed`; та же проверка есть в `.github/workflows/ci.yml`.
 - `flutter gen-l10n` генерирует `AppLocalizations` из ARB; RU — шаблон, EN — перевод.
 - Обе Android-сборки проходят с **JDK 17**: `flutter build apk --flavor dev` и `flutter build apk --release --flavor prod` дают `app-dev-release.apk` / `app-prod-release.apk` (~43 МБ). С системной Java 27 Gradle 9 падает на `jlink` ещё до Dart-компиляции. Лимиты JVM заданы в `android/gradle.properties` (`-Xmx2G` для Gradle, `-Xmx1536m` для Kotlin), JDK 17 подключён в CI. iOS-сборка не проверялась (нет macOS/Xcode).
@@ -197,7 +197,7 @@ flutter pub get
 flutter gen-l10n                        # ARB -> lib/l10n/app_localizations*.dart
 flutter analyze --no-pub                # No issues found!
 dart format --output=none --set-exit-if-changed lib test
-flutter test --no-pub                   # 23 теста
+flutter test --no-pub                   # 24 теста
 flutter run --flavor dev               # Android
 flutter build apk --flavor dev         # app-dev-release.apk
 ```

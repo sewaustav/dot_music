@@ -11,7 +11,7 @@
 | Проверка | До исправлений | Сейчас |
 |---|---|---|
 | `flutter analyze --no-pub` | 65 замечаний, 28 предупреждений `notifyListeners()` | ✅ `No issues found!` |
-| `flutter test --no-pub` | ❌ пустой `test/widget_test.dart` | ✅ **23 теста** проходят |
+| `flutter test --no-pub` | ❌ пустой `test/widget_test.dart` | ✅ **24 теста** проходят |
 | `dart format --output=none --set-exit-if-changed lib test` | 42 из 46 файлов требуют форматирования | ✅ `0 changed` (проверка добавлена в CI) |
 | `flutter pub get` / `flutter gen-l10n` | локализация не подключена | ✅ RU-шаблон + EN, generated-файлы создаются |
 | `flutter build apk --flavor dev` (JDK 17) | — | ✅ `app-dev-release.apk` (~43 МБ) собран; Android-сборка добавлена в CI |
@@ -24,7 +24,7 @@ CI: `.github/workflows/ci.yml` — JDK 17 → `pub get` → `analyze` → про
 
 ## P0 — стабильность (выполнено)
 
-- [x] **P0-1.** Пустой `test/widget_test.dart` заменён smoke-тестом; всего 23 теста.
+- [x] **P0-1.** Пустой `test/widget_test.dart` заменён smoke-тестом; всего 24 теста.
 - [x] **P0-2.** Отладочный цикл с `loadedSongs[s]` при <30 треках удалён (`song_list/music_service.dart`).
 - [x] **P0-3.** Схема БД v4: `migrateDatabase()` идемпотентна, уникальные индексы и чистка дублей, `resetDatabase()` пересоздаёт таблицы; тесты на in-memory БД.
 - [x] **P0-4.** Очередь защищена от пустого списка/невалидного индекса; `PlayerLogic.init()` вызывается с `await` и обработкой ошибки; ошибка показывается в UI.
@@ -92,7 +92,7 @@ CI: `.github/workflows/ci.yml` — JDK 17 → `pub get` → `analyze` → про
 
 | Файл | Что проверяет |
 |---|---|
-| `test/widget_test.dart` | smoke-рендер MaterialApp |
+| `test/widget_test.dart` | smoke-рендер MaterialApp + сборка `DotMusic` (регресс белого экрана из-за `context.l10n` до `MaterialApp`) |
 | `test/queue_test.dart` | `makeQueue`/`shuffleQueue`: пустой список, границы индекса, неизменяемость входа |
 | `test/db_migration_test.dart` | схема v4, v1→v4, идемпотентность, уникальные индексы, транзакционный `registerPlayback` |
 | `test/router_args_test.dart` | разбор аргументов плеера без `extra`, неверные типы, `returnRoute` |

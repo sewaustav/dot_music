@@ -25,14 +25,19 @@ class DotMusic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Прогресс сканирования показывается вне виджетов, поэтому локализацию
-    // передаём в общее состояние один раз при построении приложения.
-    TrackLoadingState.l10n = context.l10n;
+    // context до MaterialApp ещё не содержит Localizations: брать отсюда
+    // context.l10n нельзя (приводило к белому экрану при старте).
     return MaterialApp.router(
       routerConfig: router,
-      title: context.l10n.appTitle,
+      onGenerateTitle: (context) => context.l10n.appTitle,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      builder: (context, child) {
+        // Прогресс сканирования показывается вне виджетов, поэтому локализацию
+        // берём из context уже внутри MaterialApp.
+        TrackLoadingState.l10n = context.l10n;
+        return child ?? const SizedBox.shrink();
+      },
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.dark(
