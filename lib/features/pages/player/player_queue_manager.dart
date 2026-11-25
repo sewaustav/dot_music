@@ -15,6 +15,13 @@ class PlayerQueueManager {
     return queue.makeQueue(songs, initialIndex);
   }
 
+  /// Порядок из списка треков (сортировка на экране) применяется до rotate,
+  /// чтобы next/prev шли именно по видимому порядку.
+  List<Map<String, dynamic>> orderByPaths(
+    List<Map<String, dynamic>> songs,
+    List<String> paths,
+  ) => queue.reorderByPaths(songs, paths);
+
   void changeRepeatMode() {
     if (parent.state.songs.isEmpty) return;
 

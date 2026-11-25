@@ -134,6 +134,10 @@ class _SongListPageState extends State<SongListPage> {
           "index": index,
           "playlist": 0,
           "fromMiniPlayer": false,
+          "queuePaths": songs
+              .map((song) => song['path']?.toString() ?? '')
+              .where((path) => path.isNotEmpty)
+              .toList(),
         },
       ),
     );

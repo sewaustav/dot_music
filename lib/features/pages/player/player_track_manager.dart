@@ -79,7 +79,10 @@ class PlayerTrackManager {
     }
 
     final loaded = await getSongs(parent.playlist);
-    parent.state.songs = parent.queueManager.makeInitialQueue(loaded, 0);
+    parent.state.songs = parent.queueManager.makeInitialQueue(
+      parent.queueManager.orderByPaths(loaded, parent.orderedPaths),
+      0,
+    );
     parent.state.currentSongIndex = 0;
     parent.syncQueue();
 

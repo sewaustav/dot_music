@@ -170,7 +170,7 @@ flowchart LR
 1. `initTracksInBackground()` (`track_service/load_tracks.dart`) защищён `isLoading`-guard и `_scanGeneration`: старый проход не перезаписывает прогресс нового; в начале сбрасываются error/счётчики. Рассылка слушателям идёт по копии списка.
 2. `TrackLoaderService.initializePlugin()` → `loadSongs()` (один вызов `permissionsRequest()` + `querySongs`), метаданные кэшируются в `core/service.dart`.
 3. `addMissingSongsToDbWithProgress()` добавляет только недостающие треки, передаёт `metadata` в `SongService.addSongToDb()`; ошибка одного трека не прерывает сканирование.
-4. Сортировка списка (`pages/song_list/sort.dart`): популярность — по `playback_count` из БД, алфавит — по `title` без учёта регистра, время добавления — по `date_added` из MediaStore (`DeviceTrackMetadata`), кэшированному на сессию; если его нет, используется `mtime` файла. `DeviceTrackMetadata.invalidate()` вызывается перед каждым сканированием. Удаление трека из библиотеки — мягкое: только `black_list`/избранное/плейлист, файл на устройстве не трогается.
+4. Сортировка списка (`pages/song_list/sort.dart`): популярность — по `playback_count` из БД, алфавит — по `title` без учёта регистра, время добавления — по `date_added` из MediaStore (`DeviceTrackMetadata`), кэшированному на сессию; если его нет, используется `mtime` файла. `DeviceTrackMetadata.invalidate()` вызывается перед каждым сканированием. Удаление трека из библиотеки — мягкое: только `black_list`/избранное/плейлист, файл на устройстве не трогается. При переходе в плеер экран передаёт `queuePaths` (порядок видимых треков) через `PlayerRouteArgs`; `PlayerLogic.init()` применяет его через `QueueService.reorderByPaths()` до `makeQueue()`, поэтому next/prev следуют сортировке, а не `created_at`.
 5. `MyAudioHandler` хранит очередь и индекс, пишет их в `SharedPreferences` и восстанавливает при старте; `MediaItem.queue`/`PlaybackState.queueIndex` заполнены, `skipToNext/Previous` в уведомлении работают без открытого `PlayerPage`. `onTaskRemoved()` отсутствует — ongoing-уведомление не останавливает музыку. Параметры `artworkPath`/`artworkUri` и методы `updateMetadata()`/`customAction()` определены в контракте, но пока не вызываются плеером.
 
 Платформы:
@@ -184,7 +184,7 @@ flowchart LR
 ## 9. Тесты и качество кода
 
 - `flutter analyze --no-pub`: `No issues found!`. В `analysis_options.yaml` включены `unawaited_futures`, `discarded_futures`, `avoid_dynamic_calls`, `use_build_context_synchronously`. `strict-casts` не используется: текущий SDK отклоняет опцию (`unsupported_option_with_legal_values`).
-- `flutter test --no-pub`: **28 тестов** — очередь, миграции/статистика БД, разбор аргументов роутера, рассылка `TrackLoadingState`, `PlayerLogic` (очередь/repeat/media session/dispose/внешний индекс), владение плеером в `PlayerStateListener`, `TrackLoaderService`, сортировка, мягкое удаление, smoke-виджет. Unit-тесты плеера используют `FakeAudioController` вместо нативных плагинов.
+- `flutter test --no-pub`: **34 теста** — очередь, миграции/статистика БД, разбор аргументов роутера, рассылка `TrackLoadingState`, `PlayerLogic` (очередь/repeat/media session/dispose/внешний индекс), владение плеером в `PlayerStateListener`, `TrackLoaderService`, сортировка, порядок очереди по сортировке, мягкое удаление, smoke-виджет. Unit-тесты плеера используют `FakeAudioController` вместо нативных плагинов.
 - `dart format --output=none --set-exit-if-changed lib test`: `0 changed`; та же проверка есть в `.github/workflows/ci.yml`.
 - `flutter gen-l10n` генерирует `AppLocalizations` из ARB; RU — шаблон, EN — перевод.
 - Обе Android-сборки проходят с **JDK 17**: `flutter build apk --flavor dev` и `flutter build apk --release --flavor prod` дают `app-dev-release.apk` / `app-prod-release.apk` (~43 МБ). С системной Java 27 Gradle 9 падает на `jlink` ещё до Dart-компиляции. Лимиты JVM заданы в `android/gradle.properties` (`-Xmx2G` для Gradle, `-Xmx1536m` для Kotlin), JDK 17 подключён в CI. iOS-сборка не проверялась (нет macOS/Xcode).
@@ -199,7 +199,7 @@ flutter pub get
 flutter gen-l10n                        # ARB -> lib/l10n/app_localizations*.dart
 flutter analyze --no-pub                # No issues found!
 dart format --output=none --set-exit-if-changed lib test
-flutter test --no-pub                   # 28 тестов
+flutter test --no-pub                   # 34 теста
 flutter run --flavor dev               # Android
 flutter build apk --flavor dev         # app-dev-release.apk
 ```

@@ -21,6 +21,7 @@ class PlayerRouteArgs {
     required this.playlist,
     this.fromMiniPlayer = false,
     this.returnRoute,
+    this.queuePaths = const <String>[],
   });
 
   final String path;
@@ -28,6 +29,10 @@ class PlayerRouteArgs {
   final int playlist;
   final bool fromMiniPlayer;
   final String? returnRoute;
+
+  /// Порядок треков на экране, откуда открыт плеер. Без него плеер строит
+  /// очередь в порядке БД и сортировка не влияет на next/prev.
+  final List<String> queuePaths;
 
   factory PlayerRouteArgs.from(GoRouterState state) => PlayerRouteArgs.parse(
     extra: state.extra,
@@ -55,10 +60,19 @@ class PlayerRouteArgs {
       fromMiniPlayer:
           _bool(map['fromMiniPlayer']) ?? (query['fromMiniPlayer'] == 'true'),
       returnRoute: _string(map['returnRoute']) ?? query['returnRoute'],
+      queuePaths: _strings(map['queuePaths']) ?? const <String>[],
     );
   }
 
   static String? _string(Object? value) => value?.toString();
+
+  static List<String>? _strings(Object? value) {
+    if (value is! Iterable) return null;
+    return value
+        .map((item) => item?.toString() ?? '')
+        .where((path) => path.isNotEmpty)
+        .toList(growable: false);
+  }
 
   static int? _int(Object? value) {
     if (value is int) return value;
@@ -124,6 +138,7 @@ final router = GoRouter(
           playlist: args.playlist,
           fromMiniPlayer: args.fromMiniPlayer,
           returnRoute: args.returnRoute,
+          queuePaths: args.queuePaths,
         );
       },
     ),

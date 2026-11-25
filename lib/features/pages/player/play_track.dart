@@ -18,6 +18,7 @@ class PlayerPage extends StatefulWidget {
     required this.index,
     this.fromMiniPlayer = false,
     this.returnRoute,
+    this.queuePaths = const <String>[],
   });
 
   final String path;
@@ -25,6 +26,7 @@ class PlayerPage extends StatefulWidget {
   final int index;
   final bool fromMiniPlayer;
   final String? returnRoute;
+  final List<String> queuePaths;
 
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -45,6 +47,7 @@ class _PlayerPageState extends State<PlayerPage> {
         initialIndex: widget.index,
         playlist: widget.playlist,
         initialPath: widget.path,
+        orderedPaths: widget.queuePaths,
         l10n: context.l10n,
       );
       _playerListener.registerPlayer(_logic);

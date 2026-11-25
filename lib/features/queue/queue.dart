@@ -18,6 +18,41 @@ class QueueService {
     return [current, ...after, ...before];
   }
 
+  /// Перестраивает список в порядке видимого списка треков (например, после
+  /// сортировки по дате). Пути, которых нет в [paths], остаются в конце в
+  /// исходном порядке. Входной список не изменяется.
+  List<Map<String, dynamic>> reorderByPaths(
+    List<Map<String, dynamic>> songs,
+    List<String> paths,
+  ) {
+    if (paths.isEmpty) return List<Map<String, dynamic>>.from(songs);
+
+    final byPath = <String, List<Map<String, dynamic>>>{};
+    final withoutPath = <Map<String, dynamic>>[];
+    for (final song in songs) {
+      final path = song['path']?.toString();
+      if (path == null || path.isEmpty) {
+        withoutPath.add(song);
+      } else {
+        byPath.putIfAbsent(path, () => <Map<String, dynamic>>[]).add(song);
+      }
+    }
+
+    final ordered = <Map<String, dynamic>>[];
+    for (final path in paths) {
+      final bucket = byPath[path];
+      if (bucket != null && bucket.isNotEmpty) {
+        ordered.add(bucket.removeAt(0));
+      }
+    }
+    for (final bucket in byPath.values) {
+      ordered.addAll(bucket);
+    }
+    ordered.addAll(withoutPath);
+
+    return ordered;
+  }
+
   /// Перемешивает очередь, оставляя текущий трек первым.
   void shuffleQueue(List<Map<String, dynamic>> queue, int currentIndex) {
     if (queue.isEmpty) return;

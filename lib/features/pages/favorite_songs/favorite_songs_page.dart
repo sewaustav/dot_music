@@ -126,6 +126,10 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
                           "index": index,
                           "playlist": -1,
                           "fromMiniPlayer": false,
+                          "queuePaths": _songs
+                              .map((song) => song['path']?.toString() ?? '')
+                              .where((path) => path.isNotEmpty)
+                              .toList(),
                         },
                       ),
                     );

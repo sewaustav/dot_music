@@ -56,6 +56,10 @@ class _PlaylistPageState extends State<PlaylistPage> {
           "index": index,
           "playlist": widget.playlist,
           "fromMiniPlayer": false,
+          "queuePaths": _songs
+              .map((song) => song['path']?.toString() ?? '')
+              .where((path) => path.isNotEmpty)
+              .toList(),
         },
       ),
     );

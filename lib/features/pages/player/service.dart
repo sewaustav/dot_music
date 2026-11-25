@@ -28,7 +28,10 @@ class PlayerLogic extends ChangeNotifier {
     required this.l10n,
     AudioController? audioController,
     this.initialPath,
-  }) {
+    List<String>? orderedPaths,
+  }) : orderedPaths = List<String>.unmodifiable(
+         orderedPaths ?? const <String>[],
+       ) {
     state = PlayerState();
     this.audioController = audioController ?? audioHandler;
     audio = PlayerAudioManager(this, audioController: this.audioController);
@@ -41,6 +44,7 @@ class PlayerLogic extends ChangeNotifier {
   final int initialIndex;
   final int playlist;
   final String? initialPath;
+  final List<String> orderedPaths;
   final AppLocalizations l10n;
 
   /// Фиксируется в конструкторе: disposing не должен снимать колбэки с
@@ -61,17 +65,21 @@ class PlayerLogic extends ChangeNotifier {
       return;
     }
 
-    var index = initialIndex >= 0 && initialIndex < loadedSongs.length
+    // Сортировка экрана приходит вместе с переходом в плеер: без неё БД
+    // вернула бы треки в порядке created_at, и next/prev пошли бы не так.
+    final orderedSongs = queueManager.orderByPaths(loadedSongs, orderedPaths);
+
+    var index = initialIndex >= 0 && initialIndex < orderedSongs.length
         ? initialIndex
         : 0;
     if (initialPath != null) {
-      final pathIndex = loadedSongs.indexWhere(
+      final pathIndex = orderedSongs.indexWhere(
         (song) => song['path'] == initialPath,
       );
       if (pathIndex != -1) index = pathIndex;
     }
 
-    state.songs = queueManager.makeInitialQueue(loadedSongs, index);
+    state.songs = queueManager.makeInitialQueue(orderedSongs, index);
     state.currentSongIndex = 0;
     syncQueue();
     await favoriteManager.updateFavoriteStatus(state.trackId);
@@ -98,7 +106,10 @@ class PlayerLogic extends ChangeNotifier {
 
   Future<void> _reloadFavoriteQueue() async {
     final loaded = await trackManager.getSongs(-1);
-    state.songs = queueManager.makeInitialQueue(loaded, 0);
+    state.songs = queueManager.makeInitialQueue(
+      queueManager.orderByPaths(loaded, orderedPaths),
+      0,
+    );
     state.currentSongIndex = 0;
     syncQueue();
     if (loaded.isEmpty) setError(l10n.favoritesEmpty);

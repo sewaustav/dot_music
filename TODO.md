@@ -11,7 +11,7 @@
 | Проверка | До исправлений | Сейчас |
 |---|---|---|
 | `flutter analyze --no-pub` | 65 замечаний, 28 предупреждений `notifyListeners()` | ✅ `No issues found!` |
-| `flutter test --no-pub` | ❌ пустой `test/widget_test.dart` | ✅ **28 тестов** проходят |
+| `flutter test --no-pub` | ❌ пустой `test/widget_test.dart` | ✅ **34 теста** проходят |
 | `dart format --output=none --set-exit-if-changed lib test` | 42 из 46 файлов требуют форматирования | ✅ `0 changed` (проверка добавлена в CI) |
 | `flutter pub get` / `flutter gen-l10n` | локализация не подключена | ✅ RU-шаблон + EN, generated-файлы создаются |
 | `flutter build apk --flavor dev` (JDK 17) | — | ✅ `app-dev-release.apk` (~43 МБ) собран; Android-сборка добавлена в CI |
@@ -24,7 +24,7 @@ CI: `.github/workflows/ci.yml` — JDK 17 → `pub get` → `analyze` → про
 
 ## P0 — стабильность (выполнено)
 
-- [x] **P0-1.** Пустой `test/widget_test.dart` заменён smoke-тестом; всего 28 тестов.
+- [x] **P0-1.** Пустой `test/widget_test.dart` заменён smoke-тестом; всего 34 теста.
 - [x] **P0-2.** Отладочный цикл с `loadedSongs[s]` при <30 треках удалён (`song_list/music_service.dart`).
 - [x] **P0-3.** Схема БД v4: `migrateDatabase()` идемпотентна, уникальные индексы и чистка дублей, `resetDatabase()` пересоздаёт таблицы; тесты на in-memory БД.
 - [x] **P0-4.** Очередь защищена от пустого списка/невалидного индекса; `PlayerLogic.init()` вызывается с `await` и обработкой ошибки; ошибка показывается в UI.
@@ -73,6 +73,7 @@ CI: `.github/workflows/ci.yml` — JDK 17 → `pub get` → `analyze` → про
 - [x] **P2-12.** `onTaskRemoved()` удалён — ongoing-уведомление больше не останавливает музыку.
 - [x] **P2-13.** Сортировка списка треков: по популярности (`playback_count`), по алфавиту и по времени добавления **с устройства** (`date_added` MediaStore из `on_audio_query`, fallback — `mtime` файла; не `tracks.created_at`). Метаданные собираются один раз за сессию и сбрасываются после пересканирования; выбор через меню в AppBar.
 - [x] **P2-14.** Удаление треков осталось мягким: файл с устройства не удаляется, трек только попадает в чёрный список/убирается из избранного или плейлиста. Проверено интеграционным тестом с реальным временным файлом.
+- [x] **P2-15.** Очередь строится по порядку видимого списка: экран передаёт в `/player` упорядоченные пути, `PlayerLogic` применяет их до `makeQueue`, поэтому next/prev идут по выбранной сортировке. То же для плейлиста, избранного и после удаления трека из плеера.
 
 ---
 
@@ -105,13 +106,15 @@ CI: `.github/workflows/ci.yml` — JDK 17 → `pub get` → `analyze` → про
 | `test/widget_test.dart` | smoke-рендер MaterialApp + сборка `DotMusic` (регресс белого экрана из-за `context.l10n` до `MaterialApp`) |
 | `test/queue_test.dart` | `makeQueue`/`shuffleQueue`: пустой список, границы индекса, неизменяемость входа |
 | `test/db_migration_test.dart` | схема v4, v1→v4, идемпотентность, уникальные индексы, транзакционный `registerPlayback` |
-| `test/router_args_test.dart` | разбор аргументов плеера без `extra`, неверные типы, `returnRoute` |
+| `test/router_args_test.dart` | разбор аргументов плеера без `extra`, неверные типы, `returnRoute`, порядок очереди |
 | `test/loading_state_test.dart` | рассылка слушателям переживает отписку во время notify |
 | `test/player_logic_test.dart` | пустая очередь, repeat/shuffle, `syncQueue` и media-очередь, dispose снимает колбэки/подписки, внешняя смена индекса |
 | `test/player_holder_test.dart` | `PlayerStateListener` владеет активным плеером и dispose'ит предыдущий |
 | `test/track_loader_test.dart` | в БД добавляются только отсутствующие треки, прогресс полный, ошибка одного трека не прерывает сканирование |
 | `test/track_sort_test.dart` | популярность, алфавит и дата добавления из переданных метаданных устройства |
 | `test/soft_delete_test.dart` | после блокировки трека файл остаётся на устройстве, трек возвращается после разблокировки |
+| `test/queue_order_test.dart` | восстановление порядка по путям, треки без пути в конце, пустой порядок |
+| `test/player_queue_order_test.dart` | `PlayerLogic.init()` строит очередь в порядке сортированного экрана и передаёт её в медиа-сессию |
 | `test/support/fake_audio_controller.dart` | заглушка `AudioController` для unit-тестов без нативных плагинов |
 
 Отдельно введена абстракция `AudioController` (`lib/features/player/audio_controller.dart`): `MyAudioHandler` её реализует, тесты подменяют заглушкой.

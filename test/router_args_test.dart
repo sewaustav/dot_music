@@ -42,5 +42,20 @@ void main() {
       expect(args.fromMiniPlayer, isTrue);
       expect(args.returnRoute, '/fav');
     });
+
+    test('передаёт порядок очереди из сортированного списка', () {
+      final args = PlayerRouteArgs.parse(
+        extra: {
+          'songData': '/music/2.mp3',
+          'queuePaths': ['/music/3.mp3', '/music/2.mp3', '/music/1.mp3'],
+        },
+      );
+
+      expect(args.queuePaths, ['/music/3.mp3', '/music/2.mp3', '/music/1.mp3']);
+      expect(
+        PlayerRouteArgs.parse(extra: {'queuePaths': 'not a list'}).queuePaths,
+        isEmpty,
+      );
+    });
   });
 }
