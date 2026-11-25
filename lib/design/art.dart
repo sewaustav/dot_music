@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:dot_music/design/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -14,7 +15,7 @@ class GradientArtworkGenerator {
     int width = 512,
     int height = 512,
   }) async {
-    colors ??= const [Color(0xFF6366f1), Color(0xFF8b5cf6), Color(0xFFec4899)];
+    colors ??= const [secondary, accent];
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);

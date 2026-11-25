@@ -88,9 +88,8 @@ class _PlayerPageState extends State<PlayerPage> {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: primary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded),
           tooltip: context.l10n.back,
           onPressed: _goBack,
         ),
@@ -98,62 +97,73 @@ class _PlayerPageState extends State<PlayerPage> {
           _logic.currentTitle,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const SizedBox(height: 8),
-                PlayerHeader(
-                  title: _logic.currentTitle,
-                  artist: _logic.currentArtist,
-                  playbackCount: _logic.playbackCount,
-                ),
-                const SizedBox(height: 16),
-                if (_logic.totalDuration.inMilliseconds > 0) ...[
-                  PlayerProgress(
-                    current: _logic.currentPosition,
-                    total: _logic.totalDuration,
-                    onSeek: _logic.seek,
-                  ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [background, surface],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              child: Column(
+                children: [
                   const SizedBox(height: 8),
-                ],
-                PlayerControls(
-                  isPlaying: _logic.isPlaying,
-                  repeatMode: _logic.repeatMode,
-                  onPlayPause: _logic.togglePlayPause,
-                  onNext: _logic.playNextSong,
-                  onPrev: _logic.playPreviousSong,
-                  onShuffle: _logic.playRandomSong,
-                  onChangeRepeatMode: _logic.changeRepeatMode,
-                ),
-                const SizedBox(height: 24),
-                PlayerActionsRow(
-                  onOpenPlaylist: _openPlaylistView,
-                  onDelete: _logic.removeTrack,
-                  isFavorite: _logic.isFavorite,
-                  toggleFavorite: _logic.toggleFavorite,
-                ),
-                if (_logic.error != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      _logic.error!,
-                      style: const TextStyle(color: Colors.red),
-                    ),
+                  PlayerHeader(
+                    title: _logic.currentTitle,
+                    artist: _logic.currentArtist,
+                    playbackCount: _logic.playbackCount,
                   ),
+                  const SizedBox(height: 16),
+                  if (_logic.totalDuration.inMilliseconds > 0) ...[
+                    PlayerProgress(
+                      current: _logic.currentPosition,
+                      total: _logic.totalDuration,
+                      onSeek: _logic.seek,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  PlayerControls(
+                    isPlaying: _logic.isPlaying,
+                    repeatMode: _logic.repeatMode,
+                    onPlayPause: _logic.togglePlayPause,
+                    onNext: _logic.playNextSong,
+                    onPrev: _logic.playPreviousSong,
+                    onShuffle: _logic.playRandomSong,
+                    onChangeRepeatMode: _logic.changeRepeatMode,
+                  ),
+                  const SizedBox(height: 24),
+                  PlayerActionsRow(
+                    onOpenPlaylist: _openPlaylistView,
+                    onDelete: _logic.removeTrack,
+                    isFavorite: _logic.isFavorite,
+                    toggleFavorite: _logic.toggleFavorite,
+                  ),
+                  if (_logic.error != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: danger.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: danger.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        _logic.error!,
+                        style: const TextStyle(color: danger),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

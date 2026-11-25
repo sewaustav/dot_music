@@ -34,7 +34,7 @@
 1. `WidgetsFlutterBinding.ensureInitialized()`.
 2. `await DatabaseHelper().db` — открытие/создание БД версии 4.
 3. `await initAudioService()` — на Android сначала `Permission.notification.request()`, затем `AudioService.init<MyAudioHandler>()`; результат сохраняется в глобальный `late AudioController audioHandler` (`lib/features/player/audio.dart`).
-4. `runApp(const DotMusic())`. `MaterialApp.router` получает `localizationsDelegates`, `supportedLocales`, тему с палитрой `design/colors.dart`, `routerConfig: router` и `onGenerateTitle` (заголовок берётся из `context.l10n` уже внутри `Localizations`). В `builder` приложение передаёт локализацию в `TrackLoadingState.l10n` — прогресс сканирования показывается вне виджетов. Обращение к `context.l10n` до `MaterialApp` недопустимо: оно привело бы к `Null check operator used on a null value` и белому экрану.
+4. `runApp(const DotMusic())`. `MaterialApp.router` получает `localizationsDelegates`, `supportedLocales`, единую тему `_appTheme` (палитра `design/colors.dart`, типографика, кнопки, поля, диалоги), `routerConfig: router` и `onGenerateTitle` (заголовок берётся из `context.l10n` уже внутри `Localizations`). В `builder` приложение передаёт локализацию в `TrackLoadingState.l10n` — прогресс сканирования показывается вне виджетов. Обращение к `context.l10n` до `MaterialApp` недопустимо: оно привело бы к `Null check operator used on a null value` и белому экрану.
 5. `unawaited(initTracksInBackground())` — автосканирование после старта UI; кнопка на главной остаётся как «пересканировать».
 
 Bundle id: `com.dotmusic.app` (prod, iOS), `com.dotmusic.app.dev` (dev Android), канал уведомлений `com.dotmusic.app.channel.audio`.

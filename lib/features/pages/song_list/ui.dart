@@ -32,10 +32,10 @@ class SongCard extends StatelessWidget {
       onPlay: onPlay,
       onPlayNext: onPlayNext,
       trailing: PopupMenuButton<String>(
-        icon: Icon(Icons.more_vert, color: secondary),
+        icon: const Icon(Icons.more_vert, color: textMuted),
         tooltip: context.l10n.trackActions,
-        color: primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: surfaceElevated,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onSelected: (value) async {
           switch (value) {
             case 'edit':
@@ -61,7 +61,7 @@ class SongCard extends StatelessWidget {
             value: 'edit',
             child: Row(
               children: [
-                Icon(Icons.edit, color: textColor, size: 20),
+                const Icon(Icons.edit, color: accent, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   context.l10n.edit,
@@ -76,7 +76,7 @@ class SongCard extends StatelessWidget {
             value: 'add_to_playlist',
             child: Row(
               children: [
-                Icon(Icons.playlist_add, color: textColor, size: 20),
+                const Icon(Icons.playlist_add, color: mint, size: 20),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
@@ -93,12 +93,12 @@ class SongCard extends StatelessWidget {
             value: 'delete',
             child: Row(
               children: [
-                const Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                const Icon(Icons.delete, color: danger, size: 20),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
                     context.l10n.delete,
-                    style: const TextStyle(color: Colors.redAccent),
+                    style: const TextStyle(color: danger),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

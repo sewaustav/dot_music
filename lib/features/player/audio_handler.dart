@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:dot_music/design/art.dart';
+import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/player/audio_controller.dart';
 import 'package:just_audio/just_audio.dart';
@@ -159,7 +159,7 @@ class MyAudioHandler extends BaseAudioHandler implements AudioController {
         !File(_cachedGradientPath!).existsSync()) {
       _cachedGradientPath =
           await GradientArtworkGenerator.generateGradientArtwork(
-            colors: const [Color(0xFF667eea), Color(0xFF764ba2)],
+            colors: const [secondary, accent],
           );
     }
 

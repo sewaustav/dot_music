@@ -70,9 +70,28 @@ class _SongListPageState extends State<SongListPage> {
 
     if (songs.isEmpty) {
       return Center(
-        child: Text(
-          context.l10n.tracksNotFound,
-          style: TextStyle(fontSize: 16, color: textColor),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: secondary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.music_off_rounded,
+                color: accent,
+                size: 34,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              context.l10n.tracksNotFound,
+              style: const TextStyle(fontSize: 15, color: textMuted),
+            ),
+          ],
         ),
       );
     }
@@ -197,55 +216,66 @@ class _SongListPageState extends State<SongListPage> {
   Widget build(BuildContext context) {
     return MiniPlayerScaffold(
       appBar: AppBar(
-        backgroundColor: primary,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded),
           tooltip: context.l10n.back,
           onPressed: () => context.go("/"),
         ),
         title: Text(
           context.l10n.allMusicTracks,
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        centerTitle: true,
         actions: [
           if (_controller.trackCount > 0)
             Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
+              padding: const EdgeInsets.only(right: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: surfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Text(
                   context.l10n.totalTracks(_controller.trackCount),
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  style: const TextStyle(color: textMuted, fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
-          PopupMenuButton<TrackSortMode>(
-            icon: const Icon(Icons.sort, color: Colors.white),
-            tooltip: context.l10n.sortTracks,
-            initialValue: _sortMode,
-            onSelected: (mode) async {
-              setState(() => _sortMode = mode);
-              await _loadSongs();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: TrackSortMode.popularity,
-                child: Text(context.l10n.sortByPopularity),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: PopupMenuButton<TrackSortMode>(
+              icon: const Icon(Icons.sort_rounded, color: accent),
+              color: surfaceElevated,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              PopupMenuItem(
-                value: TrackSortMode.alphabet,
-                child: Text(context.l10n.sortByAlphabet),
-              ),
-              PopupMenuItem(
-                value: TrackSortMode.dateAdded,
-                child: Text(context.l10n.sortByDateAdded),
-              ),
-            ],
+              tooltip: context.l10n.sortTracks,
+              initialValue: _sortMode,
+              onSelected: (mode) async {
+                setState(() => _sortMode = mode);
+                await _loadSongs();
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: TrackSortMode.popularity,
+                  child: Text(context.l10n.sortByPopularity),
+                ),
+                PopupMenuItem(
+                  value: TrackSortMode.alphabet,
+                  child: Text(context.l10n.sortByAlphabet),
+                ),
+                PopupMenuItem(
+                  value: TrackSortMode.dateAdded,
+                  child: Text(context.l10n.sortByDateAdded),
+                ),
+              ],
+            ),
           ),
         ],
       ),

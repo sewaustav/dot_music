@@ -31,28 +31,34 @@ class _MonthlyStatPageState extends State<MonthlyStatPage> {
       appBar: AppBar(
         title: Text(
           context.l10n.topForPeriod('${widget.month}.${DateTime.now().year}'),
-          style: TextStyle(color: textColor),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        backgroundColor: primary,
-        centerTitle: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _futureMonthly,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: accent));
+            return const Center(
+              child: CircularProgressIndicator(color: accent),
+            );
           }
           if (snapshot.hasError) {
             return Center(
-              child: Text(
-                context.l10n.errorWithMessage(snapshot.error.toString()),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  context.l10n.errorWithMessage(snapshot.error.toString()),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: danger),
+                ),
               ),
             );
           }
 
           final tracks = snapshot.data ?? [];
           if (tracks.isEmpty) {
-            return Center(child: Text(context.l10n.noData));
+            return const StatEmptyState();
           }
 
           return StatList(tracks: tracks, countKey: 'playback_count');

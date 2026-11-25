@@ -21,6 +21,7 @@ class FavoriteSongsPage extends StatefulWidget {
 class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   final FavoriteService _favoriteService = FavoriteService();
   List<Map<String, dynamic>> _songs = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -87,9 +88,12 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
       if (!mounted) return;
       setState(() {
         _songs = songs;
+        _isLoading = false;
       });
     } catch (e) {
       logger.e("Error loading songs: $e");
+      if (!mounted) return;
+      setState(() => _isLoading = false);
     }
   }
 
@@ -97,71 +101,76 @@ class _FavoriteSongsPageState extends State<FavoriteSongsPage> {
   Widget build(BuildContext context) {
     return MiniPlayerScaffold(
       appBar: AppBar(
-        backgroundColor: primary,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded),
           tooltip: context.l10n.back,
-          onPressed: () {
-            context.go("/");
-          },
+          onPressed: () => context.go('/'),
         ),
         title: Text(
           context.l10n.favorites,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        centerTitle: true,
       ),
-      body: _songs.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.favorite_border,
-                    color: Colors.white30,
-                    size: 72,
-                    semanticLabel: context.l10n.noFavoriteTracks,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    context.l10n.noFavoriteTracks,
-                    style: const TextStyle(color: Colors.white54, fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: accent));
+    }
+
+    if (_songs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: danger.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(24),
               ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _songs.length,
-              itemBuilder: (context, index) {
-                final song = _songs[index];
-                return TrackTile(
-                  title: song['title']?.toString() ?? context.l10n.noName,
-                  artist:
-                      song['artist']?.toString() ?? context.l10n.unknownArtist,
-                  coverIcon: Icons.favorite,
-                  coverColors: [
-                    Colors.redAccent.withValues(alpha: 0.9),
-                    secondary.withValues(alpha: 0.9),
-                  ],
-                  onPlay: () => _playSong(song, index),
-                  onPlayNext: () => _playNextSong(song, index),
-                  onDelete: () async {
-                    // deleteFromFav уведомляет revision — список перезагрузит слушатель.
-                    await _favoriteService.deleteFromFav(song['track_id']);
-                  },
-                  deleteIcon: Icons.favorite,
-                  deleteTooltip: context.l10n.removeFromFavorites,
-                );
-              },
+              child: Icon(
+                Icons.favorite_border_rounded,
+                color: danger,
+                size: 34,
+                semanticLabel: context.l10n.favorites,
+              ),
             ),
+            const SizedBox(height: 14),
+            Text(
+              context.l10n.noFavoriteTracks,
+              style: const TextStyle(color: textMuted, fontSize: 15),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(14),
+      itemCount: _songs.length,
+      itemBuilder: (context, index) {
+        final song = _songs[index];
+        return TrackTile(
+          title: song['title']?.toString() ?? context.l10n.noName,
+          artist: song['artist']?.toString() ?? context.l10n.unknownArtist,
+          coverIcon: Icons.favorite_rounded,
+          coverColors: [danger, secondary],
+          onPlay: () => _playSong(song, index),
+          onPlayNext: () => _playNextSong(song, index),
+          onDelete: () async {
+            // deleteFromFav уведомляет revision — список перезагрузит слушатель.
+            await _favoriteService.deleteFromFav(song['track_id']);
+          },
+          deleteIcon: Icons.favorite_border_rounded,
+          deleteTooltip: context.l10n.removeFromFavorites,
+        );
+      },
     );
   }
 }

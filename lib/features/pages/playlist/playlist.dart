@@ -22,6 +22,7 @@ class PlaylistPage extends StatefulWidget {
 
 class _PlaylistPageState extends State<PlaylistPage> {
   List<Map<String, dynamic>> _songs = [];
+  bool _isLoading = true;
   final playlistService = PlaylistService();
   final songService = SongService();
 
@@ -42,9 +43,12 @@ class _PlaylistPageState extends State<PlaylistPage> {
       if (!mounted) return;
       setState(() {
         _songs = songs;
+        _isLoading = false;
       });
     } catch (e) {
       logger.e('Ошибка загрузки плейлиста: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
     }
   }
 
@@ -116,45 +120,69 @@ class _PlaylistPageState extends State<PlaylistPage> {
   Widget build(BuildContext context) {
     return MiniPlayerScaffold(
       appBar: AppBar(
-        backgroundColor: primary,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded),
           tooltip: context.l10n.back,
-          onPressed: () {
-            context.go("/listpl");
-          },
+          onPressed: () => context.go('/listpl'),
         ),
-        elevation: 0,
         title: Text(
           context.l10n.playlists,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        centerTitle: true,
       ),
-      body: _songs.isEmpty
-          ? Center(child: CircularProgressIndicator(color: accent))
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _songs.length,
-              itemBuilder: (context, index) {
-                final song = _songs[index];
-                return TrackTile(
-                  title: song['title']?.toString() ?? context.l10n.noName,
-                  artist:
-                      song['artist']?.toString() ?? context.l10n.unknownArtist,
-                  onPlay: () => _playSong(song, index),
-                  onPlayNext: () => _playNextSong(song, index),
-                  onDelete: () => _removeFromPlaylist(song),
-                  deleteTooltip: context.l10n.removeFromPlaylist,
-                  onEdit: () => _editTrackTitle(song),
-                );
-              },
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: accent));
+    }
+
+    if (_songs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: secondary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.queue_music_rounded,
+                color: accent,
+                size: 34,
+              ),
             ),
+            const SizedBox(height: 14),
+            Text(
+              context.l10n.tracksNotFound,
+              style: const TextStyle(color: textMuted, fontSize: 15),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(14),
+      itemCount: _songs.length,
+      itemBuilder: (context, index) {
+        final song = _songs[index];
+        return TrackTile(
+          title: song['title']?.toString() ?? context.l10n.noName,
+          artist: song['artist']?.toString() ?? context.l10n.unknownArtist,
+          onPlay: () => _playSong(song, index),
+          onPlayNext: () => _playNextSong(song, index),
+          onDelete: () => _removeFromPlaylist(song),
+          deleteTooltip: context.l10n.removeFromPlaylist,
+          onEdit: () => _editTrackTitle(song),
+        );
+      },
     );
   }
 }

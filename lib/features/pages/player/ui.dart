@@ -21,7 +21,7 @@ class PlayerHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.textScalerOf(context).scale(1);
-    final coverSize = (260 * scale).clamp(140.0, 260.0).toDouble();
+    final coverSize = (236 * scale).clamp(150.0, 260.0).toDouble();
 
     return Column(
       children: [
@@ -34,30 +34,42 @@ class PlayerHeader extends StatelessWidget {
             aspectRatio: 1,
             child: Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                gradient: LinearGradient(
-                  colors: [
-                    secondary.withValues(alpha: 0.9),
-                    accent.withValues(alpha: 0.9),
-                  ],
+                borderRadius: BorderRadius.circular(30),
+                gradient: const LinearGradient(
+                  colors: [secondary, accent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: secondary.withValues(alpha: 0.35),
+                    blurRadius: 32,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
               ),
-              child: const Center(
-                child: Icon(Icons.music_note, size: 80, color: Colors.white24),
+              child: Center(
+                child: Icon(
+                  Icons.music_note_rounded,
+                  size: coverSize * 0.32,
+                  color: textColor.withValues(alpha: 0.85),
+                ),
               ),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 22),
         Text(
           title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ).copyWith(color: textColor),
+            fontSize: 21,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: textColor,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
@@ -65,12 +77,27 @@ class PlayerHeader extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Colors.white70, fontSize: 14),
+          style: const TextStyle(color: textMuted, fontSize: 14),
         ),
-        const SizedBox(height: 8),
-        Text(
-          context.l10n.playbackCount(playbackCount),
-          style: const TextStyle(color: Colors.white60, fontSize: 12),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: surfaceElevated,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: outline.withValues(alpha: 0.8)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.trending_up_rounded, size: 14, color: accent),
+              const SizedBox(width: 6),
+              Text(
+                context.l10n.playbackCount(playbackCount),
+                style: const TextStyle(color: textMuted, fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -117,8 +144,6 @@ class _PlayerProgressState extends State<PlayerProgress> {
             widget.onSeek(Duration(milliseconds: v.toInt()));
             setState(() => _preview = null);
           },
-          activeColor: accent,
-          inactiveColor: Colors.white10,
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -127,11 +152,11 @@ class _PlayerProgressState extends State<PlayerProgress> {
             children: [
               Text(
                 _format(Duration(milliseconds: preview.toInt())),
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
+                style: const TextStyle(color: textMuted, fontSize: 12),
               ),
               Text(
                 _format(widget.total),
-                style: const TextStyle(color: Colors.white60, fontSize: 12),
+                style: const TextStyle(color: textMuted, fontSize: 12),
               ),
             ],
           ),
@@ -162,13 +187,13 @@ class PlayerControls extends StatelessWidget {
   final VoidCallback onChangeRepeatMode;
 
   IconData _repeatIcon() => switch (repeatMode) {
-    RepeatMode.off => Icons.repeat,
-    RepeatMode.one => Icons.repeat_one,
-    RepeatMode.random => Icons.casino,
+    RepeatMode.off => Icons.repeat_rounded,
+    RepeatMode.one => Icons.repeat_one_rounded,
+    RepeatMode.random => Icons.casino_rounded,
   };
 
   Color _repeatColor() => switch (repeatMode) {
-    RepeatMode.off => Colors.white60,
+    RepeatMode.off => textMuted,
     RepeatMode.one => accent,
     RepeatMode.random => accent,
   };
@@ -184,57 +209,58 @@ class PlayerControls extends StatelessWidget {
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             onPressed: onShuffle,
-            icon: const Icon(Icons.shuffle),
-            iconSize: 24,
-            color: repeatMode == RepeatMode.random ? accent : Colors.white60,
+            icon: const Icon(Icons.shuffle_rounded),
+            iconSize: 22,
+            color: repeatMode == RepeatMode.random ? accent : textMuted,
             tooltip: context.l10n.shuffle,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           IconButton(
             onPressed: onPrev,
-            icon: const Icon(Icons.skip_previous),
+            icon: const Icon(Icons.skip_previous_rounded),
             iconSize: 34,
-            color: Colors.white,
+            color: textColor,
             tooltip: context.l10n.previousTrack,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           Tooltip(
             message: isPlaying ? context.l10n.pause : context.l10n.play,
             child: ElevatedButton(
               onPressed: onPlayPause,
               style: ElevatedButton.styleFrom(
                 shape: const CircleBorder(),
-                padding: const EdgeInsets.all(16),
-                backgroundColor: accent,
+                padding: const EdgeInsets.all(18),
+                backgroundColor: secondary,
                 foregroundColor: textColor,
-                elevation: 4,
+                elevation: 8,
+                shadowColor: secondary.withValues(alpha: 0.4),
               ),
               child: Icon(
                 isPlaying ? Icons.pause : Icons.play_arrow,
-                size: 28,
+                size: 30,
                 semanticLabel: isPlaying
                     ? context.l10n.pause
                     : context.l10n.play,
               ),
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           IconButton(
             onPressed: onNext,
-            icon: const Icon(Icons.skip_next),
+            icon: const Icon(Icons.skip_next_rounded),
             iconSize: 34,
-            color: Colors.white,
+            color: textColor,
             tooltip: context.l10n.nextTrack,
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 6),
           IconButton(
             onPressed: onChangeRepeatMode,
             icon: Icon(_repeatIcon()),
-            iconSize: 24,
+            iconSize: 22,
             color: _repeatColor(),
             tooltip: _repeatTooltip(context),
           ),
@@ -260,31 +286,43 @@ class PlayerActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: surfaceElevated.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: outline.withValues(alpha: 0.8)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
             onPressed: onOpenPlaylist,
-            icon: const Icon(Icons.playlist_play),
+            icon: const Icon(Icons.queue_music_rounded, size: 21),
             tooltip: context.l10n.queue,
-            color: Colors.white70,
+            color: accent,
+            visualDensity: VisualDensity.compact,
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 6),
           IconButton(
             onPressed: toggleFavorite,
-            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
+            icon: Icon(
+              isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              size: 21,
+            ),
             tooltip: context.l10n.favorites,
-            color: Colors.white70,
+            color: isFavorite ? danger : textMuted,
+            visualDensity: VisualDensity.compact,
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 6),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline),
+            icon: const Icon(Icons.delete_outline_rounded, size: 21),
             tooltip: context.l10n.delete,
-            color: Colors.white70,
+            color: danger,
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),

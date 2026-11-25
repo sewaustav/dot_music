@@ -2,6 +2,7 @@ import 'package:dot_music/l10n/l10n.dart';
 import 'dart:async';
 
 import 'package:dot_music/core/db/crud.dart';
+import 'package:dot_music/design/colors.dart';
 import 'package:dot_music/features/pages/home/create_playlist.dart';
 import 'package:dot_music/features/pages/home/ui.dart';
 import 'package:dot_music/features/pages/player/mini_player.dart';
@@ -57,7 +58,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: background,
       bottomNavigationBar: const MiniPlayer(),
       body: Stack(
         children: [
@@ -108,10 +109,10 @@ class _HomePageState extends State<HomePage> {
               bottom: 0,
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: surfaceElevated,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
+                      color: background.withValues(alpha: 0.5),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
@@ -133,7 +134,7 @@ class _HomePageState extends State<HomePage> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: textColor,
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
                             ),
@@ -144,7 +145,7 @@ class _HomePageState extends State<HomePage> {
                             '${TrackLoadingState.loadedTracks} / ${TrackLoadingState.totalTracks}',
                             maxLines: 1,
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
+                              color: textMuted,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -159,10 +160,8 @@ class _HomePageState extends State<HomePage> {
                             ? TrackLoadingState.loadedTracks /
                                   TrackLoadingState.totalTracks
                             : null,
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF1DB954),
-                        ),
+                        backgroundColor: outline,
+                        valueColor: const AlwaysStoppedAnimation<Color>(accent),
                         minHeight: 4,
                       ),
                     ),
@@ -175,7 +174,7 @@ class _HomePageState extends State<HomePage> {
           if (TrackLoadingState.errorText != null)
             Positioned.fill(
               child: Container(
-                color: Colors.black.withValues(alpha: 0.9),
+                color: background.withValues(alpha: 0.96),
                 child: Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -184,7 +183,7 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         Icon(
                           Icons.error_outline,
-                          color: Colors.redAccent,
+                          color: danger,
                           size: 64,
                           semanticLabel: context.l10n.loadError,
                         ),
@@ -193,7 +192,7 @@ class _HomePageState extends State<HomePage> {
                           TrackLoadingState.errorText!,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: textColor,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -206,7 +205,8 @@ class _HomePageState extends State<HomePage> {
                             unawaited(initTracksInBackground());
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.redAccent,
+                            backgroundColor: danger,
+                            foregroundColor: textColor,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 32,
                               vertical: 12,
