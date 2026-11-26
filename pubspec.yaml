@@ -37,6 +37,12 @@ dev_dependencies:
   flutter_launcher_icons: ^0.13.1
   sqflite_common_ffi: ^2.3.3
 
+dependency_overrides:
+  # Upstream 1.1.0 has no AGP namespace and cannot be configured by AGP 8+.
+  # Vendored copy adds the namespace and Java/Kotlin compatibility settings.
+  on_audio_query_android:
+    path: third_party/on_audio_query_android
+
 flutter:
 
   uses-material-design: true
