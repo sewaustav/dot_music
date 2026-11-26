@@ -14,5 +14,4 @@ class DeleteService {
   Future<bool> isBlocked(int trackId) async {
     return await bs.isBlocked(trackId);
   }
-
 }

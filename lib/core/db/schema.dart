@@ -4,8 +4,8 @@ class Schema {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
       artist TEXT,
-      path TEXT,
-      playback_count INTEGER,
+      path TEXT UNIQUE,
+      playback_count INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   ''';
@@ -13,7 +13,7 @@ class Schema {
   static const String createPlaylistsTable = '''
     CREATE TABLE playlists (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
   ''';
@@ -35,18 +35,16 @@ class Schema {
       track_id INTEGER NOT NULL,
       month INT NOT NULL,
       year INT NOT NULL,
-      playback_count INTEGER DEFAULT 0,
-
+      playback_count INTEGER NOT NULL DEFAULT 0,
+      UNIQUE (track_id, month, year),
       FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
     );
   ''';
 
-  // new tables 
   static const String createFavTable = '''
     CREATE TABLE favorite_songs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      track_id INTEGER NOT NULL,
-
+      track_id INTEGER NOT NULL UNIQUE,
       FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
     )
   ''';
@@ -54,19 +52,18 @@ class Schema {
   static const String createBlockTable = '''
     CREATE TABLE black_list (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      track_id INTEGER NOT NULL,
+      track_id INTEGER NOT NULL UNIQUE,
       path TEXT,
-
       FOREIGN KEY (track_id) REFERENCES tracks (id) ON DELETE CASCADE
     )
   ''';
 
   static List<String> get createTables => [
-        createTracksTable,
-        createPlaylistsTable,
-        createPlaylistTracksTable,
-        createStatTable,
-        createFavTable,
-        createBlockTable
-      ];
+    createTracksTable,
+    createPlaylistsTable,
+    createPlaylistTracksTable,
+    createStatTable,
+    createFavTable,
+    createBlockTable,
+  ];
 }

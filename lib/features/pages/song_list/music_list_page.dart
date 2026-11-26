@@ -1,10 +1,15 @@
+import 'package:dot_music/l10n/l10n.dart';
+import 'dart:async';
+
 import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/crud.dart';
-import 'package:dot_music/core/db/db_helper.dart';
+import 'package:dot_music/core/db/fav_service.dart';
 import 'package:dot_music/design/colors.dart';
-import 'package:dot_music/features/pages/player/mini_player.dart';
+import 'package:dot_music/features/pages/player/mini_player_scaffold.dart';
+import 'package:dot_music/features/pages/player/player_holder.dart';
 import 'package:dot_music/features/pages/song_list/music_service.dart';
 import 'package:dot_music/features/pages/song_list/playlist_dialog.dart';
+import 'package:dot_music/features/pages/song_list/sort.dart';
 import 'package:dot_music/features/pages/song_list/ui.dart';
 import 'package:dot_music/features/track_service/delete_service.dart';
 import 'package:flutter/material.dart';
@@ -20,14 +25,14 @@ class SongListPage extends StatefulWidget {
 class _SongListPageState extends State<SongListPage> {
   final SongListController _controller = SongListController();
   final ScrollController _scrollController = ScrollController();
-  final ss = SongService();
+  final songService = SongService();
   List<Map<String, dynamic>> songs = [];
+  TrackSortMode _sortMode = TrackSortMode.popularity;
 
   @override
   void initState() {
     super.initState();
-    logger.i('Инициализация SongListPage');
-    _loadSongs();
+    unawaited(_loadSongs());
   }
 
   @override
@@ -40,25 +45,21 @@ class _SongListPageState extends State<SongListPage> {
     final song = songs[index];
     final oldTitle = song["title"];
 
-    logger.i('Переименование трека: $oldTitle -> $newTitle');
-
-    ss.changeSongTitle(song["path"], newTitle);
-
     setState(() {
       songs[index]["title"] = newTitle;
     });
 
     try {
-      await Future.delayed(const Duration(milliseconds: 100));
+      await songService.changeSongTitle(song["path"], newTitle);
       await _loadSongs();
-
-      _showSuccessSnackBar('Название изменено');
+      if (mounted) _showSuccessSnackBar(context.l10n.titleChanged);
     } catch (e) {
       logger.e('Ошибка при обновлении списка: $e');
+      if (!mounted) return;
       setState(() {
         songs[index]["title"] = oldTitle;
       });
-      _showErrorSnackBar('Ошибка обновления списка');
+      _showErrorSnackBar(context.l10n.updateError);
     }
   }
 
@@ -69,9 +70,28 @@ class _SongListPageState extends State<SongListPage> {
 
     if (songs.isEmpty) {
       return Center(
-        child: Text(
-          'Треки не найдены',
-          style: TextStyle(fontSize: 16, color: textColor),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: secondary.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.music_off_rounded,
+                color: accent,
+                size: 34,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              context.l10n.tracksNotFound,
+              style: const TextStyle(fontSize: 15, color: textMuted),
+            ),
+          ],
         ),
       );
     }
@@ -86,6 +106,7 @@ class _SongListPageState extends State<SongListPage> {
           song: song,
           index: index,
           onPlay: () => _playSong(song, index),
+          onPlayNext: () => _playNextSong(song, index),
           onAddToPlaylist: () => _showPlaylistSelectionDialog(song),
           onDelete: () => _handleDelete(song),
           onRename: (newTitle) => _handleRename(index, newTitle),
@@ -96,11 +117,16 @@ class _SongListPageState extends State<SongListPage> {
 
   Future<void> _loadSongs() async {
     try {
-      songs = await _controller.loadSongs();
-      setState(() {});
+      final loadedSongs = await _controller.loadSongs(mode: _sortMode);
+      if (!mounted) return;
+      setState(() {
+        songs = loadedSongs;
+      });
     } catch (e) {
-      _showErrorSnackBar('Ошибка загрузки треков: $e');
+      logger.e('Ошибка загрузки треков: $e');
+      if (!mounted) return;
       setState(() {});
+      _showErrorSnackBar(context.l10n.loadError);
     }
   }
 
@@ -120,21 +146,36 @@ class _SongListPageState extends State<SongListPage> {
     }
   }
 
-  Future<void> _playSong(Map<String, dynamic> song, int index) async {
-    logger.i('Воспроизведение трека: ${song["path"]}');
-    context.push(
-      "/player",
-      extra: {
-        "songData": song["path"],
-        "index": index,
-        "playlist": 0,
-        "fromMiniPlayer": false,
-      },
+  void _playSong(Map<String, dynamic> song, int index) {
+    unawaited(
+      context.push(
+        "/player",
+        extra: {
+          "songData": song["path"],
+          "index": index,
+          "playlist": 0,
+          "fromMiniPlayer": false,
+          "queuePaths": songs
+              .map((song) => song['path']?.toString() ?? '')
+              .where((path) => path.isNotEmpty)
+              .toList(),
+        },
+      ),
     );
+  }
+
+  void _playNextSong(Map<String, dynamic> song, int index) {
+    if (!PlayerStateListener().addNextToQueue(song)) {
+      _playSong(song, index);
+      return;
+    }
+
+    _showSuccessSnackBar(context.l10n.trackWillPlayNext);
   }
 
   Future<void> _showPlaylistSelectionDialog(Map<String, dynamic> song) async {
     final playlists = await _controller.getPlaylists();
+    if (!mounted || !context.mounted) return;
 
     final selectedPlaylist = await PlaylistSelectionDialog.show(
       context,
@@ -142,54 +183,103 @@ class _SongListPageState extends State<SongListPage> {
     );
 
     if (selectedPlaylist != null && mounted) {
+      final l10n = context.l10n;
+      final playlistId = selectedPlaylist['id'] as int?;
+      final playlistName = selectedPlaylist['name']?.toString() ?? l10n.noName;
+      if (playlistId == null) return;
       try {
-        await _controller.addSongToPlaylist(selectedPlaylist, song);
-        _showSuccessSnackBar('Трек добавлен в "$selectedPlaylist"');
+        await _controller.addSongToPlaylist(playlistId, song);
+        _showSuccessSnackBar(l10n.trackAddedToPlaylist(playlistName));
       } catch (e) {
-        _showErrorSnackBar('Ошибка добавления в плейлист: $e');
+        logger.e('Ошибка добавления в плейлист: $e');
+        _showErrorSnackBar(l10n.addToPlaylistError);
       }
     }
   }
 
   Future<void> _handleDelete(Map<String, dynamic> song) async {
-    logger.i('Удаление трека : ${song["title"]}');
-    final int trackId = await SongService().getSongIdByPath(song["path"]);
-    logger.i(await DbHelper().getTrackInfoById(trackId));
-    await DeleteService().addToBlackList(trackId);
-    logger.i('Удаление трека : ${song["title"]}');
+    try {
+      final trackId = await SongService().getSongIdByPath(song["path"]);
+      if (!mounted) return;
+      await DeleteService().addToBlackList(trackId);
+      // Чёрный список может оставить трек в избранном — обновляем слушателей.
+      FavoriteService().notifyChanged();
+      await _loadSongs();
+      if (mounted) _showSuccessSnackBar(context.l10n.trackRemovedFromLibrary);
+    } catch (e) {
+      logger.e('Ошибка удаления трека: $e');
+      if (mounted) _showErrorSnackBar(context.l10n.deleteTrackError);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: background,
+    return MiniPlayerScaffold(
       appBar: AppBar(
-        backgroundColor: primary,
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: context.l10n.back,
           onPressed: () => context.go("/"),
         ),
-        title: const Text(
-          'Музыкальные треки',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        title: Text(
+          context.l10n.allMusicTracks,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        centerTitle: true,
         actions: [
           if (_controller.trackCount > 0)
             Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
+              padding: const EdgeInsets.only(right: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: surfaceElevated,
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 child: Text(
-                  'Всего: ${_controller.trackCount}',
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  context.l10n.totalTracks(_controller.trackCount),
+                  style: const TextStyle(color: textMuted, fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: PopupMenuButton<TrackSortMode>(
+              icon: const Icon(Icons.sort_rounded, color: accent),
+              color: surfaceElevated,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              tooltip: context.l10n.sortTracks,
+              initialValue: _sortMode,
+              onSelected: (mode) async {
+                setState(() => _sortMode = mode);
+                await _loadSongs();
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: TrackSortMode.popularity,
+                  child: Text(context.l10n.sortByPopularity),
+                ),
+                PopupMenuItem(
+                  value: TrackSortMode.alphabet,
+                  child: Text(context.l10n.sortByAlphabet),
+                ),
+                PopupMenuItem(
+                  value: TrackSortMode.dateAdded,
+                  child: Text(context.l10n.sortByDateAdded),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
       body: _buildContent(),
-      bottomNavigationBar: const MiniPlayer(),
     );
   }
 }

@@ -49,5 +49,13 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<!-- Фоновое воспроизведение аудио -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>audio</string>
+		</array>
+		<!-- Доступ к локальной медиатеке через on_audio_query -->
+		<key>NSAppleMusicUsageDescription</key>
+		<string>Dot Music needs access to your music library to show and play your songs.</string>
 	</dict>
 </plist>

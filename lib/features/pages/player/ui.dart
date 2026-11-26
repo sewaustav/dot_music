@@ -1,86 +1,166 @@
 // --------------------------- Supporting Widgets --------------------------------
 
 import 'package:dot_music/design/colors.dart';
+import 'package:dot_music/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
-enum RepeatMode { off, one, random }
+enum PlayerRepeatMode { off, one, random }
 
 class PlayerHeader extends StatelessWidget {
   const PlayerHeader({
-    super.key, 
-    required this.title, 
-    required this.artist, 
+    super.key,
+    required this.title,
+    required this.artist,
     required this.playbackCount,
-    this.isLoading = false,
   });
 
   final String title;
   final String artist;
   final int playbackCount;
-  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    final coverSize = (236 * scale).clamp(150.0, 260.0).toDouble();
+
     return Column(
       children: [
-        // Large square cover placeholder
-        Container(
-          width: 260,
-          height: 260,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            gradient: LinearGradient(colors: [secondary.withOpacity(0.9), accent.withOpacity(0.9)]),
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: coverSize,
+            maxHeight: coverSize,
           ),
-          child: const Center(child: Icon(Icons.music_note, size: 80, color: Colors.white24)),
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                gradient: const LinearGradient(
+                  colors: [secondary, accent],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: secondary.withValues(alpha: 0.35),
+                    blurRadius: 32,
+                    offset: const Offset(0, 14),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.music_note_rounded,
+                  size: coverSize * 0.32,
+                  color: textColor.withValues(alpha: 0.85),
+                ),
+              ),
+            ),
+          ),
         ),
-        const SizedBox(height: 16),
-        Text(title, style: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 22),
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+            color: textColor,
+          ),
+        ),
         const SizedBox(height: 6),
-        Text(artist, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-        const SizedBox(height: 8),
-        
-        Text('Plays: $playbackCount', style: const TextStyle(color: Colors.white60, fontSize: 12)),
-        
+        Text(
+          artist,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: textMuted, fontSize: 14),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: surfaceElevated,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: outline.withValues(alpha: 0.8)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.trending_up_rounded, size: 14, color: accent),
+              const SizedBox(width: 6),
+              Text(
+                context.l10n.playbackCount(playbackCount),
+                style: const TextStyle(color: textMuted, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
-class PlayerProgress extends StatelessWidget {
-  const PlayerProgress({super.key, required this.current, required this.total, required this.onSeek});
+class PlayerProgress extends StatefulWidget {
+  const PlayerProgress({
+    super.key,
+    required this.current,
+    required this.total,
+    required this.onSeek,
+  });
 
   final Duration current;
   final Duration total;
   final void Function(Duration) onSeek;
 
+  @override
+  State<PlayerProgress> createState() => _PlayerProgressState();
+}
+
+class _PlayerProgressState extends State<PlayerProgress> {
+  double? _preview;
+
   String _format(Duration d) {
     String two(int n) => n.toString().padLeft(2, '0');
-    return "${two(d.inMinutes.remainder(60))}:${two(d.inSeconds.remainder(60))}";
+    return '${two(d.inMinutes.remainder(60))}:${two(d.inSeconds.remainder(60))}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final max = widget.total.inMilliseconds.toDouble();
+    final preview = _preview ?? widget.current.inMilliseconds.toDouble();
+
     return Column(
       children: [
         Slider(
           min: 0,
-          max: total.inMilliseconds.toDouble(),
-          value: current.inMilliseconds.clamp(0, total.inMilliseconds).toDouble(),
-          onChanged: (v) {},
-          onChangeEnd: (v) => onSeek(Duration(milliseconds: v.toInt())),
-          activeColor: accent,
-          inactiveColor: Colors.white10,
+          max: max > 0 ? max : 1,
+          value: preview.clamp(0, max > 0 ? max : 1).toDouble(),
+          onChanged: (v) => setState(() => _preview = v),
+          onChangeEnd: (v) {
+            widget.onSeek(Duration(milliseconds: v.toInt()));
+            setState(() => _preview = null);
+          },
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_format(current), style: const TextStyle(color: Colors.white60, fontSize: 12)), 
-              Text(_format(total), style: const TextStyle(color: Colors.white60, fontSize: 12))
+              Text(
+                _format(Duration(milliseconds: preview.toInt())),
+                style: const TextStyle(color: textMuted, fontSize: 12),
+              ),
+              Text(
+                _format(widget.total),
+                style: const TextStyle(color: textMuted, fontSize: 12),
+              ),
             ],
           ),
-        )
+        ),
       ],
     );
   }
@@ -99,96 +179,94 @@ class PlayerControls extends StatelessWidget {
   });
 
   final bool isPlaying;
-  final RepeatMode repeatMode;
+  final PlayerRepeatMode repeatMode;
   final VoidCallback onPlayPause;
   final VoidCallback onNext;
   final VoidCallback onPrev;
   final VoidCallback onShuffle;
   final VoidCallback onChangeRepeatMode;
 
-  IconData _repeatIcon() {
-    switch (repeatMode) {
-      case RepeatMode.off:
-        return Icons.repeat;
-      case RepeatMode.one:
-        return Icons.repeat_one;
-      case RepeatMode.random:
-        return Icons.casino; 
-    }
-  }
+  IconData _repeatIcon() => switch (repeatMode) {
+    PlayerRepeatMode.off => Icons.repeat_rounded,
+    PlayerRepeatMode.one => Icons.repeat_one_rounded,
+    PlayerRepeatMode.random => Icons.casino_rounded,
+  };
 
-  Color _repeatColor() {
-    switch (repeatMode) {
-      case RepeatMode.off:
-        return Colors.white60;
-      case RepeatMode.one:
-        return accent;
-      case RepeatMode.random:
-        return accent;
-    }
-  }
+  Color _repeatColor() => switch (repeatMode) {
+    PlayerRepeatMode.off => textMuted,
+    PlayerRepeatMode.one => accent,
+    PlayerRepeatMode.random => accent,
+  };
+
+  String _repeatTooltip(BuildContext context) => switch (repeatMode) {
+    PlayerRepeatMode.off => context.l10n.repeatOff,
+    PlayerRepeatMode.one => context.l10n.repeatOne,
+    PlayerRepeatMode.random => context.l10n.randomOrder,
+  };
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          onPressed: onShuffle,
-          icon: const Icon(Icons.shuffle),
-          iconSize: 26,
-          color: repeatMode == RepeatMode.random ? accent : Colors.white60,
-          tooltip: 'Shuffle',
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: onPrev,
-          icon: const Icon(Icons.skip_previous),
-          iconSize: 36,
-          color: Colors.white,
-        ),
-        const SizedBox(width: 8),
-        // Central play/pause button
-        ElevatedButton(
-          onPressed: onPlayPause,
-          style: ElevatedButton.styleFrom(
-            shape: const CircleBorder(),
-            padding: const EdgeInsets.all(18),
-            backgroundColor: textColor,
-            foregroundColor: background,
-            elevation: 6,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: onShuffle,
+            icon: const Icon(Icons.shuffle_rounded),
+            iconSize: 22,
+            color: repeatMode == PlayerRepeatMode.random ? accent : textMuted,
+            tooltip: context.l10n.shuffle,
           ),
-          child: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 30),
-        ),
-
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: onNext,
-          icon: const Icon(Icons.skip_next),
-          iconSize: 36,
-          color: Colors.white,
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: onChangeRepeatMode,
-          icon: Icon(_repeatIcon()),
-          iconSize: 26,
-          color: _repeatColor(),
-          tooltip: _getRepeatTooltip(),
-        ),
-      ],
+          const SizedBox(width: 6),
+          IconButton(
+            onPressed: onPrev,
+            icon: const Icon(Icons.skip_previous_rounded),
+            iconSize: 34,
+            color: textColor,
+            tooltip: context.l10n.previousTrack,
+          ),
+          const SizedBox(width: 6),
+          Tooltip(
+            message: isPlaying ? context.l10n.pause : context.l10n.play,
+            child: ElevatedButton(
+              onPressed: onPlayPause,
+              style: ElevatedButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(18),
+                backgroundColor: secondary,
+                foregroundColor: textColor,
+                elevation: 8,
+                shadowColor: secondary.withValues(alpha: 0.4),
+              ),
+              child: Icon(
+                isPlaying ? Icons.pause : Icons.play_arrow,
+                size: 30,
+                semanticLabel: isPlaying
+                    ? context.l10n.pause
+                    : context.l10n.play,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            onPressed: onNext,
+            icon: const Icon(Icons.skip_next_rounded),
+            iconSize: 34,
+            color: textColor,
+            tooltip: context.l10n.nextTrack,
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            onPressed: onChangeRepeatMode,
+            icon: Icon(_repeatIcon()),
+            iconSize: 22,
+            color: _repeatColor(),
+            tooltip: _repeatTooltip(context),
+          ),
+        ],
+      ),
     );
-  }
-
-  String _getRepeatTooltip() {
-    switch (repeatMode) {
-      case RepeatMode.off:
-        return 'Repeat Off';
-      case RepeatMode.one:
-        return 'Repeat One';
-      case RepeatMode.random:
-        return 'Random';
-    }
   }
 }
 
@@ -198,7 +276,7 @@ class PlayerActionsRow extends StatelessWidget {
     required this.onOpenPlaylist,
     required this.onDelete,
     required this.isFavorite,
-    required this.toggleFavorite
+    required this.toggleFavorite,
   });
 
   final VoidCallback onOpenPlaylist;
@@ -206,37 +284,48 @@ class PlayerActionsRow extends StatelessWidget {
   final VoidCallback toggleFavorite;
   final bool isFavorite;
 
-
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 6),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: surfaceElevated.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: outline.withValues(alpha: 0.8)),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             onPressed: onOpenPlaylist,
-            icon: const Icon(Icons.playlist_play),
-            tooltip: 'Playlist',
-            color: Colors.white70,
+            icon: const Icon(Icons.queue_music_rounded, size: 21),
+            tooltip: context.l10n.queue,
+            color: accent,
+            visualDensity: VisualDensity.compact,
           ),
-          
+          const SizedBox(width: 6),
           IconButton(
             onPressed: toggleFavorite,
-            icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
-            tooltip: 'Favorite',
-            color: Colors.white70,
+            icon: Icon(
+              isFavorite
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              size: 21,
+            ),
+            tooltip: context.l10n.favorites,
+            color: isFavorite ? danger : textMuted,
+            visualDensity: VisualDensity.compact,
           ),
-
+          const SizedBox(width: 6),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(Icons.delete_outline),
-            tooltip: 'Remove',
-            color: Colors.white70,
+            icon: const Icon(Icons.delete_outline_rounded, size: 21),
+            tooltip: context.l10n.delete,
+            color: danger,
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),
     );
   }
 }
-

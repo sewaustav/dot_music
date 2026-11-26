@@ -1,3 +1,4 @@
+import 'package:dot_music/l10n/l10n.dart';
 import 'package:dot_music/core/db/stat_service.dart';
 import 'package:dot_music/features/pages/stat/top_stat.dart';
 import 'package:flutter/material.dart';
@@ -27,33 +28,39 @@ class _AnnualStatPageState extends State<AnnualStatPage> {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
-        title: Text('🗓 Top for ${widget.year}',
-          style: TextStyle(
-            color: textColor
-          ),
+        title: Text(
+          context.l10n.topForPeriod(widget.year.toString()),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        backgroundColor: primary,
-        centerTitle: true,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _futureAnnual,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(color: accent));
+            return const Center(
+              child: CircularProgressIndicator(color: accent),
+            );
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  context.l10n.errorWithMessage(snapshot.error.toString()),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: danger),
+                ),
+              ),
+            );
           }
 
           final tracks = snapshot.data ?? [];
           if (tracks.isEmpty) {
-            return const Center(child: Text('No data for this year'));
+            return const StatEmptyState();
           }
 
-          return StatList(
-            tracks: tracks,
-            countKey: 'total_count',
-          );
+          return StatList(tracks: tracks, countKey: 'total_count');
         },
       ),
     );

@@ -1,4 +1,3 @@
-import 'package:dot_music/core/config.dart';
 import 'package:dot_music/core/db/db.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -41,14 +40,16 @@ class DbHelper {
     return track.first['id'] as int;
   }
 
-  Future<Map<String, dynamic>> getTrackInfoById(int trackId) async {
+  /// Возвращает null, если трек был удалён (например, попал в чёрный список).
+  Future<Map<String, dynamic>?> getTrackInfoById(int trackId) async {
     final db = await _db;
 
     final track = await db.rawQuery(
       '''SELECT title, artist, path FROM tracks WHERE id = ?''',
-      [trackId]
+      [trackId],
     );
 
+    if (track.isEmpty) return null;
     final row = track.first;
 
     return {
@@ -60,28 +61,22 @@ class DbHelper {
   }
 
   Future<List<Map<String, dynamic>>> getAllTracks() async {
-  final db = await _db;
+    final db = await _db;
 
-  final songs = await db.rawQuery(
-    """SELECT t.* 
+    final songs = await db.rawQuery("""SELECT t.*
        FROM tracks t
        WHERE t.id NOT IN (SELECT track_id FROM black_list)
-       ORDER BY t.title;"""
-  );
+       ORDER BY t.created_at DESC;""");
 
-  final updatedSongs = songs.map((song) {
-    final newSong = Map<String, dynamic>.from(song);
-    if (newSong.containsKey('id')) {
-      newSong['track_id'] = newSong['id'];
-      newSong.remove('id');
-    }
-    return newSong;
-  }).toList();
+    final updatedSongs = songs.map((song) {
+      final newSong = Map<String, dynamic>.from(song);
+      if (newSong.containsKey('id')) {
+        newSong['track_id'] = newSong['id'];
+        newSong.remove('id');
+      }
+      return newSong;
+    }).toList();
 
-  logger.i(updatedSongs);
-
-  return updatedSongs;
-}
-
-
+    return updatedSongs;
+  }
 }

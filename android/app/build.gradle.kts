@@ -13,8 +13,12 @@ val keystoreProperties = Properties().apply {
     }
 }
 
+// Файл android/key.properties не лежит в git. Если его нет, релизная сборка
+// использует debug-подпись только для локальной проверки.
+val hasReleaseKeystore = !keystoreProperties.getProperty("storeFile").isNullOrBlank()
+
 android {
-    namespace = "com.example.dot_music"
+    namespace = "com.dotmusic.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -36,10 +40,10 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
+            keyAlias = keystoreProperties.getProperty("keyAlias") ?: ""
+            keyPassword = keystoreProperties.getProperty("keyPassword") ?: ""
             storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
-            storePassword = keystoreProperties.getProperty("storePassword")
+            storePassword = keystoreProperties.getProperty("storePassword") ?: ""
         }
     }
 
@@ -48,19 +52,23 @@ android {
     productFlavors {
         create("dev") {
             dimension = "app"
-            applicationId = "com.example.dot_music_dev" // ID для дев-версии
+            applicationId = "com.dotmusic.app.dev" // ID для дев-версии
             resValue("string", "app_name", "Dot Music (Dev)") // Название для дев-версии
         }
         create("prod") {
             dimension = "app"
-            applicationId = "com.example.dot_music" // ID для релизной версии
+            applicationId = "com.dotmusic.app" // ID для релизной версии
             resValue("string", "app_name", "Dot Music") // Название для релизной версии
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug") // Будем менять это для подписи
+            signingConfig = if (hasReleaseKeystore) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

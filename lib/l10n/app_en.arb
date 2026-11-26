@@ -1,0 +1,152 @@
+{
+  "@@locale": "en",
+  "appTitle": "Dot Music",
+  "back": "Back",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "save": "Save",
+  "create": "Create",
+  "initializing": "Initializing...",
+  "initializingPlugin": "Initializing plugin...",
+  "loadingTracks": "Loading tracks...",
+  "addingTracks": "Adding tracks to the library...",
+  "loadError": "Loading error",
+  "scanLibrary": "Rescan library",
+  "playlists": "Playlists",
+  "createPlaylist": "Create playlist",
+  "createPlaylistTitle": "New playlist",
+  "playlistNameLabel": "Playlist name",
+  "enterPlaylistName": "Enter a playlist name",
+  "allTracks": "All tracks",
+  "favorites": "Favorites",
+  "statistics": "Statistics",
+  "totalTracks": "Total: {count}",
+  "@totalTracks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tracksNotFound": "No tracks found",
+  "noFavoriteTracks": "No favorite tracks",
+  "noTracksAvailable": "No tracks available",
+  "favoritesEmpty": "Favorites are empty",
+  "trackListEmpty": "The track list is empty",
+  "unknownTrack": "Unknown track",
+  "unknownArtist": "Unknown artist",
+  "noName": "Untitled",
+  "createdAt": "Created: {date}",
+  "@createdAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "unknownDate": "unknown",
+  "delete": "Delete",
+  "deletePlaylist": "Delete playlist",
+  "openPlaylist": "Open playlist",
+  "removeFromPlaylist": "Remove from playlist",
+  "removeFromFavorites": "Remove from favorites",
+  "edit": "Edit",
+  "play": "Play",
+  "pause": "Pause",
+  "addToPlaylist": "Add to playlist",
+  "trackActions": "Track actions",
+  "selectPlaylist": "Choose a playlist",
+  "coverArt": "Track artwork",
+  "playlistIcon": "Playlist",
+  "titleChanged": "Title changed",
+  "trackAddedToPlaylist": "Track added to \"{playlist}\"",
+  "@trackAddedToPlaylist": {
+    "placeholders": {
+      "playlist": {
+        "type": "String"
+      }
+    }
+  },
+  "trackRemovedFromLibrary": "Track removed from the library",
+  "updateError": "Failed to update the list",
+  "deleteTrackError": "Failed to delete the track",
+  "addToPlaylistError": "Failed to add to playlist",
+  "repeatOff": "Repeat off",
+  "repeatOne": "Repeat one",
+  "randomOrder": "Random order",
+  "shuffle": "Shuffle",
+  "previousTrack": "Previous track",
+  "nextTrack": "Next track",
+  "queue": "Queue",
+  "playbackCount": "Plays: {count}",
+  "@playbackCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playerStartError": "Failed to start the player: {error}",
+  "@playerStartError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "playbackError": "Playback error: {error}",
+  "@playbackError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "favoritesChangedError": "Failed to update favorites",
+  "pageNotFound": "Page not found",
+  "routeOpenError": "Could not open: {route}",
+  "@routeOpenError": {
+    "placeholders": {
+      "route": {
+        "type": "String"
+      }
+    }
+  },
+  "goHome": "Go home",
+  "globalTopTracks": "🏆 Global Top Tracks",
+  "monthStats": "📅 Current Month Stats",
+  "yearStats": "📆 Current Year Stats",
+  "topTracks": "🏆 Top tracks",
+  "monthlyStatistics": "📅 Monthly statistics",
+  "yearlyStatistics": "📆 Yearly statistics",
+  "allMusicTracks": "Music tracks",
+  "editSongTitle": "Edit song title",
+  "topForPeriod": "Top for {period}",
+  "@topForPeriod": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      }
+    }
+  },
+  "errorWithMessage": "Error: {error}",
+  "@errorWithMessage": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noData": "No data available",
+  "globalTop": "🏆 Global Top",
+  "permissionDenied": "Library access denied",
+  "sortTracks": "Sort tracks",
+  "sortByPopularity": "By popularity",
+  "sortByAlphabet": "By alphabet",
+  "sortByDateAdded": "Date added",
+  "playNext": "Play next",
+  "duplicateInQueue": "Duplicate in queue",
+  "removeFromQueue": "Remove from queue",
+  "dragToReorder": "Drag to reorder",
+  "trackWillPlayNext": "Track queued next"
+}
